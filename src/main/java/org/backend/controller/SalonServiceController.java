@@ -9,10 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.backend.dto.CategoryGroupDTO;
-import org.backend.dto.CategoryResponse;
-import org.backend.dto.SalonServiceDTO;
-import org.backend.dto.UpdateServiceRequest;
+import org.backend.dto.*;
 import org.backend.dto.common.ApiResponseDto;
 import org.backend.model.SalonService;
 import org.backend.service.SalonServices;
@@ -98,7 +95,7 @@ public class SalonServiceController {
                     description = "Internal server error"
             )
     })
-    public ResponseEntity<?> createService(@Valid @RequestBody SalonServiceDTO request) {
+    public ResponseEntity<?> createService(@Valid @RequestBody SalonServiceDTO request){
         return ResponseEntity.ok(
                 ApiResponseDto.<SalonServiceDTO>builder()
                         .status(true)
@@ -112,7 +109,7 @@ public class SalonServiceController {
      * Updates an existing service.
      *
      * @param serviceId the ID of the service to update
-     * @param request   the service update request
+     * @param request the service update request
      * @return ResponseEntity containing the updated service
      */
     @PutMapping(
@@ -147,7 +144,7 @@ public class SalonServiceController {
     public ResponseEntity<?> updateService(
             @Parameter(description = "Unique identifier of the service to update")
             @PathVariable Long serviceId,
-            @Valid @RequestBody UpdateServiceRequest request) {
+            @Valid @RequestBody UpdateServiceRequest request){
         return ResponseEntity.ok(
                 ApiResponseDto.<SalonServiceDTO>builder()
                         .status(true)
@@ -160,8 +157,8 @@ public class SalonServiceController {
     /**
      * Retrieves services for a specific salon with optional pagination.
      *
-     * @param salonId  the ID of the salon
-     * @param pageNo   the page number (optional)
+     * @param salonId the ID of the salon
+     * @param pageNo the page number (optional)
      * @param pageSize the page size (optional)
      * @return ResponseEntity containing the services
      */
@@ -190,8 +187,8 @@ public class SalonServiceController {
             )
     })
     public ResponseEntity<?> getServicesBySalon(@PathVariable Long salonId,
-                                                @RequestParam(required = false) Integer pageNo,
-                                                @RequestParam(required = false) Integer pageSize) {
+                                         @RequestParam(required = false) Integer pageNo,
+                                         @RequestParam(required = false) Integer pageSize) {
 
         // With pagination
         if (pageNo != null && pageSize != null) {
@@ -230,7 +227,7 @@ public class SalonServiceController {
     // Get Services By Salon & Category
     @GetMapping("/salon/{salonId}/categories/{categoryId}")
     public ResponseEntity<?> getServicesByCategoryAnsSalon(@PathVariable Long salonId,
-                                                           @PathVariable Long categoryId) {
+                                                           @PathVariable Long categoryId){
 
         List<SalonService> services =
                 serviceManager.getServicesByCategoryAndSalon(salonId, categoryId);
@@ -250,7 +247,7 @@ public class SalonServiceController {
 
     // Get Service By ID
     @GetMapping("/{serviceId}")
-    public ResponseEntity<?> getServiceById(@PathVariable Long serviceId) {
+    public ResponseEntity<?> getServiceById(@PathVariable Long serviceId){
 
         SalonService service = serviceManager.getServiceById(serviceId);
 

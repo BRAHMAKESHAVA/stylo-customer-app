@@ -51,6 +51,7 @@ public class OtpService {
      * The method checks if the user exists based on the provided mobile number and role before generating the OTP.
      * If the user is a customer, it also verifies that a corresponding customer record exists. If the OTP generation is successful,
      * it sends the OTP via SMS and returns a response indicating success and the OTP expiry time.
+     *
      * @param request
      * @return
      */
@@ -75,13 +76,13 @@ public class OtpService {
                     //requestKey, Duration.ofSeconds(OTP_EXPIRY_SECONDS)
             );
 
-                if (count > MAX_ATTEMPTS) {
-                    throw new OtpException(
-                            "TOO_MANY_REQUESTS",
-                            "Too many OTP requests. Please try again later.",
-                            HttpStatus.TOO_MANY_REQUESTS
-                    );
-                }
+        if (count > MAX_ATTEMPTS) {
+            throw new OtpException(
+                    "TOO_MANY_REQUESTS",
+                    "Too many OTP requests. Please try again later.",
+                    HttpStatus.TOO_MANY_REQUESTS
+            );
+        }
 
         //String otp = String.format("%04d", random.nextInt(10000));
         String otp = "1234"; //static OTP
@@ -108,6 +109,7 @@ public class OtpService {
      * The method also tracks the number of validation attempts and enforces limits to prevent brute-force attacks. If the OTP is valid, it deletes the OTP and attempt records from Redis.
      * It then checks the user's role and ensures that a corresponding customer record exists for customers.
      * Finally, it generates and returns access and refresh tokens for the authenticated user.
+     *
      * @param otpVerifyRequest
      * @param request
      * @return
@@ -136,12 +138,12 @@ public class OtpService {
             redisTemplate.expire(attemptsKey, Duration.ofMinutes(5));
         }
 
-                if (attempts > MAX_ATTEMPTS) {
-                    redisTemplate.delete(otpKey);
-                    throw new OtpException("MAX_ATTEMPTS",
-                            "Too many attempts. Please request a new OTP.",
-                            HttpStatus.TOO_MANY_REQUESTS);
-                }
+        if (attempts > MAX_ATTEMPTS) {
+            redisTemplate.delete(otpKey);
+            throw new OtpException("MAX_ATTEMPTS",
+                    "Too many attempts. Please request a new OTP.",
+                    HttpStatus.TOO_MANY_REQUESTS);
+        }
 
         if (!storedOtp.equals(userOtp)) {
             throw new OtpException("INVALID", "Invalid OTP. Please try again.", HttpStatus.BAD_REQUEST);

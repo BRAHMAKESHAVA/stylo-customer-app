@@ -80,19 +80,25 @@ public class AuthController {
             @ApiResponse(
                     responseCode = "200",
                     description = "OTP sent successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = SendOtpResponse.class))
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Invalid phone number format or validation error"
+                    description = "Invalid phone number format or validation error",
+                    content = @Content
+
             ),
             @ApiResponse(
                     responseCode = "429",
-                    description = "Too many OTP requests - rate limit exceeded"
+                    description = "Too many OTP requests - rate limit exceeded",
+                    content = @Content
+
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error while sending OTP"
+                    description = "Internal server error while sending OTP",
+                    content = @Content
+
             )
     })
     public ResponseEntity<SendOtpResponse> sendOtp(@Valid @RequestBody SendOtpRequest request) {
@@ -127,23 +133,31 @@ public class AuthController {
             @ApiResponse(
                     responseCode = "200",
                     description = "OTP verified successfully - JWT tokens returned",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Invalid OTP or phone number format"
+                    description = "Invalid OTP or phone number format",
+                    content = @Content
+
             ),
             @ApiResponse(
-                    responseCode = "401",
-                    description = "OTP expired or invalid"
+                    responseCode = "410",
+                    description = "OTP expired or invalid",
+                    content = @Content
+
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "User not found for given phone number"
+                    description = "User not found for given phone number",
+                    content = @Content
+
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+
             )
     })
     public ResponseEntity<ApiResponseDto<AuthResponseDTO>> verifyOtp(
@@ -183,23 +197,25 @@ public class AuthController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Token refreshed successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Invalid token format or missing Authorization header"
+                    description = "Invalid token format or missing Authorization header",
+                    content = @Content
+
             ),
             @ApiResponse(
                     responseCode = "401",
-                    description = "Refresh token expired or invalid"
-            ),
-            @ApiResponse(
-                    responseCode = "403",
-                    description = "Token validation failed"
+                    description = "Refresh token expired or invalid",
+                    content = @Content
+
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+
             )
     })
     public ResponseEntity<ApiResponseDto<RefreshTokenResponseDTO>> refreshToken(
@@ -230,19 +246,30 @@ public class AuthController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Token generated successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Invalid mobile number format"
+                    description = "Invalid mobile number format",
+                    content = @Content
+
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "User not found"
+                    description = "User not found",
+                    content = @Content
+
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
             )
     })
     public ResponseEntity<ApiResponseDto<AuthResponseDTO>> generateToken(

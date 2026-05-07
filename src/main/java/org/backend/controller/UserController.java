@@ -205,7 +205,7 @@ public class UserController {
             )
     })
     public ResponseEntity<ApiResponseDto<UserRegisterResponseDTO>> getUserById(
-            @Parameter(description = "Unique identifier of the user")
+            @Parameter(description = "Unique identifier of the user",example = "1")
             @PathVariable Long userId) {
         UserRegisterResponseDTO response = userService.getUserById(userId);
         return ResponseEntity.status(HttpStatus.OK)

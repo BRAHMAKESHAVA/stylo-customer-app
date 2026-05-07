@@ -73,7 +73,7 @@ public class SwaggerConfig {
         return new Info()
                 .title("Stylo Customer APP API")
                 .description("Enterprise-grade RESTful API for Stylo customer management system.\n\n" +
-                        "This microservice handles:\n" +
+                        "This Spring Boot project handles:\n" +
                         "• User authentication and authorization (OTP-based login)\n" +
                         "• Customer profile management and registration\n" +
                         "• Customer address management (CRUD operations)\n" +
@@ -81,7 +81,7 @@ public class SwaggerConfig {
                         "• Salon service catalog management\n" +
                         "• Salon category organization\n" +
                         "• Salon resource management\n\n" +
-                        "All endpoints require valid JWT authentication except public endpoints (send OTP, verify OTP).\n\n" +
+                        "All endpoints require valid JWT authentication except public endpoints (send OTP, verify OTP, userRegister).\n\n" +
                         "API Response Format: All responses follow a standardized wrapper format with status, message, and data fields.")
                 .version("1.0.0");
                 //.contact(buildContactInfo())
