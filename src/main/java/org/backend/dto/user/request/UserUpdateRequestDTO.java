@@ -6,11 +6,15 @@ import lombok.Data;
 import org.backend.validation.annotation.ValidGender;
 
 @Data
+@Schema(
+        name = "User Update Request",
+        description = "Request payload used to update user profile details"
+)
 public class UserUpdateRequestDTO {
 
     @Schema(
-            description = "User's first name (only letters allowed)",
-            example = "Brahma"
+            description = "User's first name. Only alphabets and spaces are allowed",
+            example = "Axiotechx"
     )
     @Pattern(
             regexp = "$|^[A-Za-z]+( [A-Za-z]+)*$",
@@ -19,8 +23,8 @@ public class UserUpdateRequestDTO {
     private String firstName;
 
     @Schema(
-            description = "User's last name (only letters allowed)",
-            example = "Kumar"
+            description = "User's last name. Only alphabets and spaces are allowed",
+            example = "Stylo"
     )
     @Pattern(
             regexp = "$|^[A-Za-z]+( [A-Za-z]+)*$",
@@ -29,27 +33,30 @@ public class UserUpdateRequestDTO {
     private String lastName;
 
     @Schema(
-            description = "User gender (Male, Female, Other)",
-            example = "Male"
+            description = "Gender of the user. Allowed values: Male, Female, Other (case-insensitive)",
+            example = "Male",
+            allowableValues = {"Male", "Female", "Other"}
     )
     @Pattern(
-            regexp = "$|^[A-Za-z]+$",
-            message = "Gender must contain only letters."
+            regexp = "(?i)^$|^(male|female|other)$",
+            message = "Gender must be Male, Female, or Other"
     )
     @ValidGender
     private String gender;
 
     @Schema(
-            description = "User age (must be between 18 and 100)",
-            example = "25"
+            description = "User age. Allowed range is between 18 and 100",
+            example = "25",
+            minimum = "18",
+            maximum = "100"
     )
     @Min(value = 18, message = "Age must be >= 18")
     @Max(value = 100, message = "Age must be <= 100")
     private Integer age;
 
     @Schema(
-            description = "User email address",
-            example = "brahma@gmail.com"
+            description = "Valid email address of the user",
+            example = "support@axiotechx.com"
     )
     @Email(message = "Invalid email format")
     @Pattern(

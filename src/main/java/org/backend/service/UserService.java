@@ -168,7 +168,7 @@ public class UserService {
             throw new BadRequestException("Page size must be between 1 and 100");
         }
 
-        Pageable pageable = PageRequest.of(page - 1, size, Sort.by("userId").descending());
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.by("id").descending());
 
         Page<Users> userPage = userRepository.findAll(pageable);
 

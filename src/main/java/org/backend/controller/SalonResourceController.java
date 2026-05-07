@@ -53,23 +53,40 @@ public class SalonResourceController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Salon resource created successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Validation failed or resource already exists for this salon"
+                    description = "Validation failed or resource already exists for this salon",
+                    content = @Content
+
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "Salon not found"
+                    description = "Salon not found",
+                    content = @Content
+
             ),
             @ApiResponse(
                     responseCode = "415",
-                    description = "Unsupported media type"
+                    description = "Unsupported media type",
+                    content = @Content
+
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
             )
     })
     public ResponseEntity<ApiResponseDto<SalonResourceDTO>> createResource(@Valid @RequestBody SalonResourceDTO request) {
@@ -105,23 +122,40 @@ public class SalonResourceController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Salon resource updated successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Invalid request, missing salon ID, or invalid resource count"
+                    description = "Invalid request, missing salon ID, or invalid resource count",
+                    content = @Content
+
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "Resource or salon not found"
+                    description = "Resource or salon not found",
+                    content = @Content
+
             ),
             @ApiResponse(
                     responseCode = "415",
-                    description = "Unsupported media type"
+                    description = "Unsupported media type",
+                    content = @Content
+
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
             )
     })
     public ResponseEntity<ApiResponseDto<SalonResourceDTO>> updateResource(@PathVariable Long id, @Valid @RequestBody UpdateSalonResourceRequestDTO request) {
@@ -154,15 +188,29 @@ public class SalonResourceController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Salon resource fetched successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "Salon or resource not found"
+                    description = "Salon or resource not found",
+                    content = @Content
+
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
             )
     })
     public ResponseEntity<ApiResponseDto<SalonResource>> getResourceBySalonId(@PathVariable Long salonId) {
@@ -197,17 +245,32 @@ public class SalonResourceController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Salon resource deleted successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "Resource not found for the provided salon and resource ID"
+                    description = "Resource not found for the provided salon and resource ID",
+                    content = @Content
+
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
             )
-    })
+
+})
     public ResponseEntity<ApiResponseDto<Void>> deleteResource(
             @PathVariable Long salonId,
             @PathVariable Long resourceId) {

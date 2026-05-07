@@ -58,18 +58,28 @@ public class SalonSearchController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Nearby salons fetched successfully or no salons found near your location.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponseDto.class)
-                    )
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Invalid page number, page size, or invalid request parameters"
+                    description = "Invalid page number, page size, or invalid request parameters",
+                    content = @Content
+
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
             )
     })
     public ResponseEntity<?> getNearbySalons(
@@ -130,22 +140,34 @@ public class SalonSearchController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Salons fetched successfully or no salons found for the selected service.",
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponseDto.class)
-                    )
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "At least one valid service must be selected or invalid request parameters"
+                    description = "At least one valid service must be selected or invalid request parameters",
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "415",
-                    description = "Unsupported media type"
+                    description = "Unsupported media type",
+                    content = @Content
+
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
             )
     })
     public ResponseEntity<ApiResponseDto<List<SalonSearchWithSelectedServicesResponseDTO>>> searchSalonsByServices(
@@ -195,14 +217,22 @@ System.out.println(request);
             @ApiResponse(
                     responseCode = "200",
                     description = "Search results fetched successfully",
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponseDto.class)
-                    )
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
             )
     })
     public ResponseEntity<?> searchNearbySalons(
@@ -247,18 +277,27 @@ System.out.println(request);
             @ApiResponse(
                     responseCode = "200",
                     description = "Salons fetched successfully",
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = ApiResponseDto.class)
-                    )
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "Salon not found"
+                    description = "Salon not found",
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
             )
     })
     public ResponseEntity<?> getSalonsByName(

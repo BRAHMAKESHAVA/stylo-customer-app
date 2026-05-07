@@ -221,8 +221,8 @@ public class AuthController {
             produces = MediaType.APPLICATION_JSON_VALUE
     )
     @Operation(
-            summary = "Generate JWT token for existing user",
-            description = "Generates JWT access and refresh tokens for an existing user identified by mobile number. " +
+            summary = "Generate JWT token for guest user",
+            description = "Generates JWT access and refresh tokens for an guest user identified by mobile number. " +
                     "This endpoint is useful for programmatic token generation.",
             operationId = "generateToken"
     )

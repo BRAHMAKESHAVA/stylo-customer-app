@@ -65,19 +65,30 @@ public class UserController {
             @ApiResponse(
                     responseCode = "200",
                     description = "User registered successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Invalid registration data or validation error"
+                    description = "Invalid registration data or validation error",
+                    content = @Content
             ),
             @ApiResponse(
-                    responseCode = "409",
-                    description = "User already exists with the given mobile number"
+                    responseCode = "400",
+                    description = """
+                        Invalid registration data or validation error.
+                        Possible cases:
+                        - Required fields are missing
+                        - Invalid mobile number format
+                        - Invalid email format
+                        - User already exists with the given mobile number
+                        """,
+                    content = @Content
+
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error during registration"
+                    description = "Internal server error during registration",
+                    content = @Content
             )
     })
     ResponseEntity<ApiResponseDto<UserRegisterResponseDTO>> userRegister(@Valid @RequestBody UserRegisterRequestDTO registerUser) {
@@ -111,19 +122,31 @@ public class UserController {
             @ApiResponse(
                     responseCode = "200",
                     description = "User updated successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-            ),
+                    content = @Content            ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Invalid update data or validation error"
+                    description = "Invalid update data or validation error",
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "User not found with the provided ID"
+                    description = "User not found with the provided ID",
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error during update"
+                    description = "Internal server error during update",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
             )
     })
     public ResponseEntity<ApiResponseDto<UserRegisterResponseDTO>> updateUser(
@@ -159,15 +182,26 @@ public class UserController {
             @ApiResponse(
                     responseCode = "200",
                     description = "User retrieved successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-            ),
+                    content = @Content            ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "User not found with the provided ID"
+                    description = "User not found with the provided ID",
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
             )
     })
     public ResponseEntity<ApiResponseDto<UserRegisterResponseDTO>> getUserById(
@@ -203,15 +237,26 @@ public class UserController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Users retrieved successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
-            ),
+                    content = @Content            ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Invalid pagination parameters"
+                    description = "Invalid pagination parameters",
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
             )
     })
     public ResponseEntity<ApiResponseDto<PageResponse<UserRegisterResponseDTO>>> getAllUsers(
@@ -250,15 +295,29 @@ public class UserController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Customer retrieved successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "Customer not found with the provided ID"
+                    description = "Customer not found with the provided ID",
+                    content = @Content
+
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
             )
     })
     public ResponseEntity<ApiResponseDto<Customer>> getCustomerById(
@@ -291,11 +350,24 @@ public class UserController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Customers retrieved successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
+                    content = @Content
+
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
             )
     })
     public ResponseEntity<ApiResponseDto<List<UserRegisterResponseDTO>>> getAllCustomers(

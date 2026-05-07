@@ -58,19 +58,35 @@ public class CustomerAddressController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Address created successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Invalid address data or validation error"
+                    description = "Invalid address data or validation error",
+                    content = @Content
+
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "Customer not found"
+                    description = "Customer not found",
+                    content = @Content
+
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
             )
     })
     public ResponseEntity<ApiResponseDto<AddressDTO>> createAddress(
@@ -107,19 +123,32 @@ public class CustomerAddressController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Address updated successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Invalid address data or validation error"
+                    description = "Invalid address data or validation error",
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "Customer or address not found"
+                    description = "Customer or address not found",
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
             )
     })
     public ResponseEntity<ApiResponseDto<AddressDTO>> updateAddress(
@@ -157,15 +186,29 @@ public class CustomerAddressController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Address deleted successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "Customer or address not found"
+                    description = "Customer or address not found",
+                    content = @Content
+
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
             )
     })
     public ResponseEntity<ApiResponseDto<String>> deleteAddress(
@@ -202,15 +245,29 @@ public class CustomerAddressController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Address retrieved successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "Customer or address not found"
+                    description = "Customer or address not found",
+                    content = @Content
+
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
             )
     })
     public ResponseEntity<ApiResponseDto<AddressDTO>> getAddressById(@PathVariable Long customerId, @PathVariable Long addressId) {
@@ -242,15 +299,29 @@ public class CustomerAddressController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Addresses retrieved successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "Customer not found"
+                    description = "Customer not found",
+                    content = @Content
+
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
             )
     })
     public ResponseEntity<ApiResponseDto<List<AddressDTO>>> getAllAddresses(

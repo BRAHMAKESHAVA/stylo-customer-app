@@ -31,8 +31,10 @@ public class CustomeUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String id) throws UsernameNotFoundException {
         Long userId = Long.valueOf(id);
         log.info("Attempting to load user by userId: {}", userId);
+
         Users users = userRepository.findById(userId).orElseThrow(
                 () -> new UsernameNotFoundException("User not found"));
+
         return new org.springframework.security.core.userdetails.User(
                 users.getMobile(),
                 users.getPassword(),
