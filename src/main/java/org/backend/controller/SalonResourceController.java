@@ -51,8 +51,7 @@ public class SalonResourceController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Salon resource created successfully",
-                    content = @Content
+                    description = "Salon resource created successfully"
             ),
             @ApiResponse(
                     responseCode = "400",
@@ -120,8 +119,7 @@ public class SalonResourceController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Salon resource updated successfully",
-                    content = @Content
+                    description = "Salon resource updated successfully"
             ),
             @ApiResponse(
                     responseCode = "400",
@@ -186,8 +184,7 @@ public class SalonResourceController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Salon resource fetched successfully",
-                    content = @Content
+                    description = "Salon resource fetched successfully"
             ),
             @ApiResponse(
                     responseCode = "404",
@@ -243,8 +240,7 @@ public class SalonResourceController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Salon resource deleted successfully",
-                    content = @Content
+                    description = "Salon resource deleted successfully"
             ),
             @ApiResponse(
                     responseCode = "404",

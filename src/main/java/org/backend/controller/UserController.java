@@ -63,8 +63,7 @@ public class UserController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "User registered successfully",
-                    content = @Content
+                    description = "User registered successfully"
             ),
             @ApiResponse(
                     responseCode = "400",
@@ -120,8 +119,8 @@ public class UserController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "User updated successfully",
-                    content = @Content            ),
+                    description = "User updated successfully"
+            ),
             @ApiResponse(
                     responseCode = "400",
                     description = "Invalid update data or validation error",
@@ -180,8 +179,8 @@ public class UserController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "User retrieved successfully",
-                    content = @Content            ),
+                    description = "User retrieved successfully"
+            ),
             @ApiResponse(
                     responseCode = "404",
                     description = "User not found with the provided ID",
@@ -235,8 +234,8 @@ public class UserController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Users retrieved successfully",
-                    content = @Content            ),
+                    description = "Users retrieved successfully"
+            ),
             @ApiResponse(
                     responseCode = "400",
                     description = "Invalid pagination parameters",
@@ -293,8 +292,7 @@ public class UserController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Customer retrieved successfully",
-                    content = @Content
+                    description = "Customer retrieved successfully"
             ),
             @ApiResponse(
                     responseCode = "404",
@@ -348,9 +346,7 @@ public class UserController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Customers retrieved successfully",
-                    content = @Content
-
+                    description = "Customers retrieved successfully"
             ),
             @ApiResponse(
                     responseCode = "500",

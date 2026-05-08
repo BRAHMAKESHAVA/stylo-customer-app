@@ -77,8 +77,7 @@ public class AuthController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "OTP sent successfully",
-                    content = @Content
+                    description = "OTP sent successfully"
             ),
             @ApiResponse(
                     responseCode = "400",
@@ -130,8 +129,7 @@ public class AuthController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "OTP verified successfully - JWT tokens returned",
-                    content = @Content
+                    description = "OTP verified successfully - JWT tokens returned"
             ),
             @ApiResponse(
                     responseCode = "400",
@@ -194,8 +192,7 @@ public class AuthController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Token refreshed successfully",
-                    content = @Content
+                    description = "Token refreshed successfully"
             ),
             @ApiResponse(
                     responseCode = "400",
@@ -243,8 +240,7 @@ public class AuthController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Token generated successfully",
-                    content = @Content
+                    description = "Token generated successfully"
             ),
             @ApiResponse(
                     responseCode = "400",

@@ -58,8 +58,7 @@ public class CustomerAddressController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Address created successfully",
-                    content = @Content
+                    description = "Address created successfully"
             ),
             @ApiResponse(
                     responseCode = "400",
@@ -126,8 +125,7 @@ public class CustomerAddressController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Address updated successfully",
-                    content = @Content
+                    description = "Address updated successfully"
             ),
             @ApiResponse(
                     responseCode = "400",
@@ -189,8 +187,7 @@ public class CustomerAddressController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Address deleted successfully",
-                    content = @Content
+                    description = "Address deleted successfully"
             ),
             @ApiResponse(
                     responseCode = "404",
@@ -248,8 +245,7 @@ public class CustomerAddressController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Address retrieved successfully",
-                    content = @Content
+                    description = "Address retrieved successfully"
             ),
             @ApiResponse(
                     responseCode = "404",
@@ -302,8 +298,7 @@ public class CustomerAddressController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Addresses retrieved successfully",
-                    content = @Content
+                    description = "Addresses retrieved successfully"
             ),
             @ApiResponse(
                     responseCode = "404",

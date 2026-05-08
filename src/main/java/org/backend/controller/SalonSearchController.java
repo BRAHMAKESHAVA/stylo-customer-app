@@ -56,8 +56,7 @@ public class SalonSearchController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Nearby salons fetched successfully or no salons found near your location.",
-                    content = @Content
+                    description = "Nearby salons fetched successfully or no salons found near your location."
             ),
             @ApiResponse(
                     responseCode = "400",
@@ -138,8 +137,7 @@ public class SalonSearchController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Salons fetched successfully or no salons found for the selected service.",
-                    content = @Content
+                    description = "Salons fetched successfully or no salons found for the selected service."
             ),
             @ApiResponse(
                     responseCode = "400",
@@ -215,8 +213,7 @@ System.out.println(request);
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Search results fetched successfully",
-                    content = @Content
+                    description = "Search results fetched successfully"
             ),
             @ApiResponse(
                     responseCode = "500",
@@ -275,8 +272,7 @@ System.out.println(request);
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Salons fetched successfully",
-                    content = @Content
+                    description = "Salons fetched successfully"
             ),
             @ApiResponse(
                     responseCode = "404",

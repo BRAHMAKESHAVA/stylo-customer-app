@@ -47,8 +47,7 @@ public class SalonServiceController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Services retrieved successfully",
-                    content = @Content
+                    description = "Services retrieved successfully"
             ),
             @ApiResponse(
                     responseCode = "500",
@@ -96,8 +95,7 @@ public class SalonServiceController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Service created successfully",
-                    content = @Content
+                    description = "Service created successfully"
             ),
             @ApiResponse(
                     responseCode = "400",
@@ -152,8 +150,7 @@ public class SalonServiceController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Service updated successfully",
-                    content = @Content
+                    description = "Service updated successfully"
             ),
             @ApiResponse(
                     responseCode = "400",
@@ -214,8 +211,7 @@ public class SalonServiceController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Services retrieved successfully",
-                    content = @Content
+                    description = "Services retrieved successfully"
             ),
             @ApiResponse(
                     responseCode = "404",
@@ -297,8 +293,7 @@ public class SalonServiceController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Services retrieved successfully",
-                    content = @Content
+                    description = "Services retrieved successfully"
             ),
             @ApiResponse(
                     responseCode = "404",
@@ -363,8 +358,7 @@ public class SalonServiceController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Service details retrieved successfully",
-                    content = @Content
+                    description = "Service details retrieved successfully"
             ),
             @ApiResponse(
                     responseCode = "404",

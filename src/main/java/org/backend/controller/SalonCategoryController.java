@@ -55,8 +55,7 @@ public class SalonCategoryController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Service category created successfully",
-                    content = @Content
+                    description = "Service category created successfully"
             ),
             @ApiResponse(
                     responseCode = "400",
@@ -121,8 +120,7 @@ public class SalonCategoryController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Service category updated successfully",
-                    content = @Content
+                    description = "Service category updated successfully"
             ),
             @ApiResponse(
                     responseCode = "400",
@@ -185,8 +183,7 @@ public class SalonCategoryController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Service category deleted successfully",
-                    content = @Content
+                    description = "Service category deleted successfully"
             ),
             @ApiResponse(
                     responseCode = "404",
@@ -240,8 +237,7 @@ public class SalonCategoryController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Service categories fetched successfully",
-                    content = @Content
+                    description = "Service categories fetched successfully"
             ),
             @ApiResponse(
                     responseCode = "404",
@@ -298,8 +294,7 @@ public class SalonCategoryController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Categories fetched successfully",
-                    content = @Content
+                    description = "Categories fetched successfully"
             ),
             @ApiResponse(
                     responseCode = "400",
