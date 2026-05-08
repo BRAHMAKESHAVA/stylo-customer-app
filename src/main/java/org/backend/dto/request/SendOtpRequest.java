@@ -16,24 +16,12 @@ import org.backend.enums.Role;
 )
 public class SendOtpRequest {
 
-    @Schema(
-            description = "Registered Indian mobile number",
-            example = "9876543210",
-            requiredMode = Schema.RequiredMode.REQUIRED
-    )
+    @Schema(description = "Registered Indian mobile number", example = "9876543210", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Mobile number is required")
-    @Pattern(
-            regexp = "^[6-9]\\d{9}$",
-            message = "Invalid Indian mobile number"
-    )
+    @Pattern(regexp = "^[6-9]\\d{9}$", message = "Invalid Indian mobile number")
     private String mobile;
 
-    @Schema(
-            description = "Role of the user requesting OTP",
-            example = "CUSTOMER",
-            allowableValues = {"CUSTOMER", "PARTNER", "ADMIN","CAPTAIN"},
-            requiredMode = Schema.RequiredMode.REQUIRED
-    )
+    @Schema(description = "Role of the user requesting OTP", example = "CUSTOMER", allowableValues = {"CUSTOMER", "PARTNER", "ADMIN", "CAPTAIN"}, requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "Role is required")
     private Role role;
 }

@@ -2,7 +2,7 @@ package org.backend.service;
 
 import lombok.RequiredArgsConstructor;
 import org.backend.dto.*;
-import org.backend.dto.CreateSalonServiceRequest;
+import org.backend.dto.request.CreateSalonServiceRequest;
 import org.backend.dto.request.UpdateSalonServiceRequest;
 import org.backend.dto.response.SalonServiceResponse;
 import org.backend.exception.BadRequestException;

@@ -16,21 +16,12 @@ import lombok.*;
 )
 public class ServiceCategoryResponse {
 
-    @Schema(
-            description = "Unique category ID",
-            example = "1"
-    )
+    @Schema(description = "Unique category ID", example = "1")
     private Long categoryId;
 
-    @Schema(
-            description = "Service category name",
-            example = "Hair Styling"
-    )
+    @Schema(description = "Service category name", example = "Hair Styling")
     private String categoryName;
 
-    @Schema(
-            description = "Status of service category",
-            example = "true"
-    )
+    @Schema(description = "Status of service category", example = "true")
     private Boolean isActive;
 }

@@ -12,35 +12,20 @@ import lombok.*;
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Schema(
-        name = "Service Category DTO",
+        name = "Create Service Category Request",
         description = "DTO used for creating salon service categories"
 )
 public class CreateServiceCategoryRequest {
 
-    @Schema(
-            description = "Unique salon ID",
-            example = "1",
-            requiredMode = Schema.RequiredMode.REQUIRED
-    )
+    @Schema(description = "Unique salon ID", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "Salon ID is required")
     private Long salonId;
 
-    @Schema(
-            description = "Service category name",
-            example = "Hair Styling",
-            requiredMode = Schema.RequiredMode.REQUIRED
-    )
+    @Schema(description = "Service category name", example = "Hair Styling", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Category name cannot be empty")
-    @Size(
-            max = 100,
-            message = "Category name must be less than 100 characters"
-    )
+    @Size(max = 100, message = "Category name must be less than 100 characters")
     private String categoryName;
 
-    @Schema(
-            description = "Status of service category",
-            example = "true",
-            defaultValue = "true"
-    )
+    @Schema(description = "Status of service category", example = "true", defaultValue = "true")
     private Boolean isActive = true;
 }

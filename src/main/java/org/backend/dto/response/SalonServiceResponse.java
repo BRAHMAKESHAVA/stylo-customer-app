@@ -24,7 +24,7 @@ public class SalonServiceResponse {
     @Schema(description = "Unique salon ID", example = "1")
     private Long salonId;
 
-    @Schema(description = "Unique category ID", example = "2")
+    @Schema(description = "Unique service category ID", example = "2")
     private Long categoryId;
 
     @Schema(description = "Service category name", example = "Hair Services")
@@ -36,12 +36,12 @@ public class SalonServiceResponse {
     @Schema(description = "Service duration in minutes", example = "45")
     private Integer durationMinutes;
 
-    @Schema(description = "Buffer time in minutes", example = "10")
+    @Schema(description = "Buffer time after service completion in minutes", example = "10")
     private Integer bufferMinutes;
 
     @Schema(description = "Service price", example = "499.99")
     private BigDecimal price;
 
-    @Schema(description = "Service active status", example = "true")
+    @Schema(description = "Status of salon service", example = "true")
     private Boolean isActive;
 }

@@ -16,21 +16,12 @@ import lombok.*;
 )
 public class SalonResourceResponse {
 
-    @Schema(
-            description = "Unique resource ID",
-            example = "1"
-    )
+    @Schema(description = "Unique resource ID", example = "1")
     private Long id;
 
-    @Schema(
-            description = "Unique salon ID",
-            example = "1"
-    )
+    @Schema(description = "Unique salon ID", example = "1")
     private Long salonId;
 
-    @Schema(
-            description = "Available salon resources or seats",
-            example = "10"
-    )
+    @Schema(description = "Available salon resources or seats", example = "10")
     private Integer resourceCount;
 }

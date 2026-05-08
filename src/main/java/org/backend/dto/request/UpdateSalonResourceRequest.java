@@ -17,16 +17,10 @@ import lombok.*;
 )
 public class UpdateSalonResourceRequest {
 
-    @Schema(
-            description = "Unique salon ID",
-            example = "1"
-    )
+    @Schema(description = "Unique salon ID", example = "1")
     private Long salonId;
 
-    @Schema(
-            description = "Updated available salon resources or seats",
-            example = "15"
-    )
+    @Schema(description = "Updated available salon resources or seats", example = "15")
     @Min(value = 1, message = "Resource count must be at least 1")
     private Integer resourceCount;
 }
