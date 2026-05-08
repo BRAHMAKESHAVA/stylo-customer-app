@@ -46,11 +46,22 @@ public class SalonServiceController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Services retrieved successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
             )
     })
     public ResponseEntity<ApiResponseDto<List<CategoryResponse>>> getAllServices() {
@@ -84,15 +95,29 @@ public class SalonServiceController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Service created successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Invalid service data or validation error"
+                    description = "Invalid service data or validation error",
+                    content = @Content
+
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
             )
     })
     public ResponseEntity<?> createService(@Valid @RequestBody SalonServiceDTO request){
@@ -126,19 +151,32 @@ public class SalonServiceController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Service updated successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Invalid service data or validation error"
+                    description = "Invalid service data or validation error",
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "Service not found"
+                    description = "Service not found",
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
             )
     })
     public ResponseEntity<?> updateService(
@@ -175,15 +213,28 @@ public class SalonServiceController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Services retrieved successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "Salon not found"
+                    description = "Salon not found",
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
             )
     })
     public ResponseEntity<?> getServicesBySalon(@PathVariable Long salonId,
@@ -225,9 +276,55 @@ public class SalonServiceController {
     }
 
     // Get Services By Salon & Category
-    @GetMapping("/salon/{salonId}/categories/{categoryId}")
-    public ResponseEntity<?> getServicesByCategoryAnsSalon(@PathVariable Long salonId,
-                                                           @PathVariable Long categoryId){
+    /**
+     * Retrieves services for a specific salon and category.
+     *
+     * @param salonId the ID of the salon
+     * @param categoryId the ID of the category
+     * @return ResponseEntity containing the list of services
+     */
+    @GetMapping(
+            value = "/salon/{salonId}/categories/{categoryId}",
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    @Operation(
+            summary = "Get services by salon and category",
+            description = "Retrieves all services available for a specific salon under a selected category.",
+            operationId = "getServicesByCategoryAndSalon"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Services retrieved successfully",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Salon or category not found",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Internal server error",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
+            )
+    })
+    public ResponseEntity<?> getServicesByCategoryAnsSalon(
+            @Parameter(description = "Unique identifier of the salon")
+            @PathVariable Long salonId,
+
+            @Parameter(description = "Unique identifier of the category")
+            @PathVariable Long categoryId){
 
         List<SalonService> services =
                 serviceManager.getServicesByCategoryAndSalon(salonId, categoryId);
@@ -246,8 +343,51 @@ public class SalonServiceController {
     }
 
     // Get Service By ID
-    @GetMapping("/{serviceId}")
-    public ResponseEntity<?> getServiceById(@PathVariable Long serviceId){
+    /**
+     * Retrieves service details by service ID.
+     *
+     * @param serviceId the ID of the service
+     * @return ResponseEntity containing service details
+     */
+    @GetMapping(
+            value = "/{serviceId}",
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    @Operation(
+            summary = "Get service by ID",
+            description = "Fetches complete details of a specific salon service using its unique service ID.",
+            operationId = "getServiceById"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Service details retrieved successfully",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Service not found",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Internal server error",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
+            )
+    })
+    public ResponseEntity<?> getServiceById(
+            @Parameter(description = "Unique identifier of the service")
+            @PathVariable Long serviceId){
 
         SalonService service = serviceManager.getServiceById(serviceId);
 

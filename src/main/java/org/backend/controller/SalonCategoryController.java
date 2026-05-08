@@ -56,23 +56,37 @@ public class SalonCategoryController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Service category created successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Validation failed or category already exists"
+                    description = "Validation failed or category already exists",
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "Salon not found"
+                    description = "Salon not found",
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "415",
-                    description = "Unsupported media type"
+                    description = "Unsupported media type",
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
             )
     })
     public ResponseEntity<?> createCategory(@Valid @RequestBody ServiceCategoryDTO category){
@@ -108,23 +122,37 @@ public class SalonCategoryController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Service category updated successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Invalid request, empty category name, or duplicate category name"
+                    description = "Invalid request, empty category name, or duplicate category name",
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "Category or salon not found"
+                    description = "Category or salon not found",
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "415",
-                    description = "Unsupported media type"
+                    description = "Unsupported media type",
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
             )
     })
     public ResponseEntity<?> updateCategory(@PathVariable Long categoryId, @Valid @RequestBody UpdateServiceCategoryRequestDTO category){
@@ -158,15 +186,27 @@ public class SalonCategoryController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Service category deleted successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "Category not found for this salon"
+                    description = "Category not found for this salon",
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
             )
     })
     public ResponseEntity<?> deleteCategory(@PathVariable Long salonId, @PathVariable Long categoryId){
@@ -201,15 +241,27 @@ public class SalonCategoryController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Service categories fetched successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "Salon not found"
+                    description = "Salon not found",
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
             )
     })
     public ResponseEntity<?> getCategoryBySalonId(@PathVariable Long salonId){
@@ -247,15 +299,29 @@ public class SalonCategoryController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Categories fetched successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponseDto.class))
+                    content = @Content
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "Invalid page number or page size"
+                    description = "Invalid page number or page size",
+                    content = @Content
+
             ),
             @ApiResponse(
                     responseCode = "500",
-                    description = "Internal server error"
+                    description = "Internal server error",
+                    content = @Content
+
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
             )
     })
     public ResponseEntity<ApiResponseDto<PageResponse<ServiceCategory>>> getAllCategories(

@@ -37,7 +37,7 @@ public class CategoryService {
      *
      * @param category the category details to create
      * @return the created ServiceCategory
-     * @throws ResourceNotFoundException if salon not found
+     * @throws ResourceNotFoundException  if salon not found
      * @throws DuplicateResourceException if category name already exists for the salon
      */
     // CREATE CATEGORY
@@ -87,11 +87,11 @@ public class CategoryService {
      * Updates an existing category.
      * Allows updating category name and active status, with validation for uniqueness.
      *
-     * @param id the ID of the category to update
+     * @param id      the ID of the category to update
      * @param request the update request containing new details
      * @return the updated ServiceCategory
-     * @throws BadRequestException if salon ID is missing or category name is empty
-     * @throws ResourceNotFoundException if category not found for the salon
+     * @throws BadRequestException        if salon ID is missing or category name is empty
+     * @throws ResourceNotFoundException  if category not found for the salon
      * @throws DuplicateResourceException if new category name already exists
      */
     // UPDATE CATEGORY
@@ -150,7 +150,7 @@ public class CategoryService {
      * Deletes a category by its ID.
      * Ensures the category exists and belongs to the specified salon before deletion.
      *
-     * @param salonId the ID of the salon
+     * @param salonId    the ID of the salon
      * @param categoryId the ID of the category to delete
      * @throws ResourceNotFoundException if category not found for the salon
      */
