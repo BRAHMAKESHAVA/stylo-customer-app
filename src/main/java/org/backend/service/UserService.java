@@ -76,6 +76,7 @@ public class UserService {
         }
 
         users.setAge(Integer.parseInt(registerUser.getAge()));
+        users.setGender(registerUser.getGender().trim().toUpperCase());
         users = userRepository.save(users);
 
         if (registerUser.getRole() == Role.CUSTOMER) {
@@ -116,8 +117,7 @@ public class UserService {
 
         if (user.getGender() != null &&
                 !user.getGender().isBlank()) {
-
-            existing.setGender(user.getGender());
+            existing.setGender(user.getGender().trim().toUpperCase());
         }
 
         if (user.getAge() != null) {

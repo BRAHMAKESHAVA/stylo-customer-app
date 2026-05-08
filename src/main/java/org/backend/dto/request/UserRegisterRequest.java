@@ -25,7 +25,7 @@ public class UserRegisterRequest {
     private String firstName;
 
     @Schema(description = "User last name. Only alphabetic characters are allowed", example = "Keshava", requiredMode = Schema.RequiredMode.REQUIRED)
-    @ValidName(field = "Last name")
+    @ValidName(field = "Last name", required = false)
     private String lastName;
 
     @Schema(description = "Gender of the user", example = "Male", allowableValues = {"Male", "Female", "Other"}, requiredMode = Schema.RequiredMode.REQUIRED)

@@ -21,7 +21,7 @@ public class GenderValidator implements ConstraintValidator<ValidGender, String>
 
         // Allow only male, female, others (case-insensitive)
         if (!(cleaned.equals("male") || cleaned.equals("female") || cleaned.equals("others"))) {
-            context.buildConstraintViolationWithTemplate("Gender must be Male, Female, or Others")
+            context.buildConstraintViolationWithTemplate("Gender must be MALE, FEMALE, or OTHERS")
                     .addConstraintViolation();
             return false;
         }

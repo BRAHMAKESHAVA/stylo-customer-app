@@ -50,8 +50,8 @@ public class UpdateAddressRequest {
     @Size(max = 40, message = "State cannot exceed 40 characters")
     private String state;
 
-    @Schema(description = "Country dialing code", example = "+91")
-    @Size(max = 10, message = "Country code cannot exceed 10 characters")
+    @Schema(description = "Country code", example = "IN")
+    @Pattern(regexp = "^[A-Z]{2}$", message = "Country code must contain 2 uppercase letters")
     private String countryCode;
 
     @Schema(description = "6-digit postal PIN code", example = "560035")

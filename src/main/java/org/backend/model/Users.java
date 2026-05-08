@@ -75,17 +75,4 @@ public class Users {
             this.email = email;
         }
     }
-
-    /**
-     * Checks if the user's profile is complete by verifying that all required fields are non-null.
-     *
-     * @return true if the profile is complete, false otherwise
-     */
-    public boolean isProfileComplete() {
-        return firstName != null &&
-                lastName != null &&
-                gender != null &&
-                age != null &&
-                email != null;
-    }
 }

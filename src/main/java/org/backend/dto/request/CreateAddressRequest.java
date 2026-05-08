@@ -60,8 +60,8 @@ public class CreateAddressRequest {
     @Size(max = 40, message = "State cannot exceed 40 characters")
     private String state;
 
-    @Schema(description = "Country dialing code", example = "+91", requiredMode = Schema.RequiredMode.REQUIRED)
-    @Size(max = 10, message = "Country code cannot exceed 10 characters")
+    @Schema(description = "Country code", example = "IN")
+    @Pattern(regexp = "^[A-Z]{2}$", message = "Country code must contain 2 uppercase letters")
     @NotBlank(message = "Country code is required")
     private String countryCode;
 
