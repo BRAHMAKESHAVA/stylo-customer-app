@@ -3,9 +3,9 @@ package org.backend.service;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.backend.dto.common.PageResponse;
-import org.backend.dto.user.request.UserRegisterRequestDTO;
-import org.backend.dto.user.request.UserUpdateRequestDTO;
-import org.backend.dto.user.response.UserRegisterResponseDTO;
+import org.backend.dto.request.UserRegisterRequest;
+import org.backend.dto.request.UserUpdateRequest;
+import org.backend.dto.response.UserResponse;
 import org.backend.enums.Role;
 import org.backend.exception.BadRequestException;
 import org.backend.exception.DuplicateResourceException;
@@ -46,7 +46,7 @@ public class UserService {
      * Registers a new user based on the provided registration details.
      */
     // USER REGISTER
-    public UserRegisterResponseDTO userRegister(UserRegisterRequestDTO registerUser) {
+    public UserResponse userRegister(UserRegisterRequest registerUser) {
         if (userRepository.existsByMobile(registerUser.getMobile())) {
             throw new DuplicateResourceException(
                     "This mobile number is already registered. Please log in instead."
@@ -84,7 +84,7 @@ public class UserService {
             );
         }
 
-        UserRegisterResponseDTO response = new UserRegisterResponseDTO();
+        UserResponse response = new UserResponse();
         BeanUtils.copyProperties(users, response);
 
         return response;
@@ -94,7 +94,7 @@ public class UserService {
      * Updates an existing user's information based on the provided user ID and update details.
      */
     // UPDATE USER
-    public UserRegisterResponseDTO updateUser(Long id, UserUpdateRequestDTO user) {
+    public UserResponse updateUser(Long id, UserUpdateRequest user) {
         Users existing = userRepository.findById(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
@@ -130,7 +130,7 @@ public class UserService {
 
         Users updated = userRepository.save(existing);
 
-        UserRegisterResponseDTO response = new UserRegisterResponseDTO();
+        UserResponse response = new UserResponse();
         BeanUtils.copyProperties(updated, response);
 
         return response;
@@ -140,7 +140,7 @@ public class UserService {
      * Retrieves a user's information based on the provided user ID.
      */
     // GET USER BY ID
-    public UserRegisterResponseDTO getUserById(Long id) {
+    public UserResponse getUserById(Long id) {
         Users user = userRepository.findById(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
@@ -148,7 +148,7 @@ public class UserService {
                         )
                 );
 
-        UserRegisterResponseDTO response = new UserRegisterResponseDTO();
+        UserResponse response = new UserResponse();
         BeanUtils.copyProperties(user, response);
 
         return response;
@@ -158,7 +158,7 @@ public class UserService {
      * Retrieves a list of all users in the system.
      */
     // GET ALL USERS
-    public PageResponse<UserRegisterResponseDTO> getAllUsers(int page, int size) {
+    public PageResponse<UserResponse> getAllUsers(int page, int size) {
 
         if (page < 1) {
             throw new BadRequestException("Page number must be >= 1");
@@ -172,16 +172,16 @@ public class UserService {
 
         Page<Users> userPage = userRepository.findAll(pageable);
 
-        List<UserRegisterResponseDTO> content = userPage.getContent()
+        List<UserResponse> content = userPage.getContent()
                 .stream()
                 .map(user -> {
-                    UserRegisterResponseDTO dto = new UserRegisterResponseDTO();
+                    UserResponse dto = new UserResponse();
                     BeanUtils.copyProperties(user, dto);
                     return dto;
                 })
                 .toList();
 
-        return PageResponse.<UserRegisterResponseDTO>builder()
+        return PageResponse.<UserResponse>builder()
                 .page(page)
                 .size(size)
                 .totalElements(userPage.getTotalElements())
@@ -217,7 +217,7 @@ public class UserService {
      * @return a list of DTOs containing information about all customers
      */
     // GET ALL CUSTOMERS
-    public List<UserRegisterResponseDTO> getAllCustomers(int page, int size) {
+    public List<UserResponse> getAllCustomers(int page, int size) {
 
         // 🔥 Business validation
         validatePagination(page, size);
@@ -227,7 +227,7 @@ public class UserService {
         Page<Customer> customerPage = customerRepository.findAll(pageable);
 
         return customerPage.getContent().stream().map(customer -> {
-            UserRegisterResponseDTO dto = new UserRegisterResponseDTO();
+            UserResponse dto = new UserResponse();
             BeanUtils.copyProperties(customer.getUsers(), dto);
             return dto;
         }).toList();

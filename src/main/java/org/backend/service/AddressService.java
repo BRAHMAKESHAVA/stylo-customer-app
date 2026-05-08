@@ -2,9 +2,9 @@ package org.backend.service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.backend.dto.CreateAddressRequestDTO;
-import org.backend.dto.UpdateAddressRequestDTO;
-import org.backend.dto.common.AddressDTO;
+import org.backend.dto.request.CreateAddressRequest;
+import org.backend.dto.request.UpdateAddressRequest;
+import org.backend.dto.response.AddressResponse;
 import org.backend.exception.BadRequestException;
 import org.backend.exception.ResourceNotFoundException;
 import org.backend.model.Address;
@@ -46,7 +46,7 @@ public class AddressService {
      * @throws BadRequestException if maximum address count exceeded
      */
     // CREATE ADDRESS
-    public AddressDTO createAddress(Long customerId, AddressDTO address) {
+    public AddressResponse createAddress(Long customerId, CreateAddressRequest address) {
 
         if (!customerRepository.existsByCustomerId(customerId))
             throw new ResourceNotFoundException("Customer not found with ID: " + customerId);
@@ -66,11 +66,10 @@ public class AddressService {
 
         address.setCustomerId(customerId);
 
-
         Address newAddress = new Address();
         BeanUtils.copyProperties(address, newAddress);
 
-        AddressDTO addressDTO = new AddressDTO();
+        AddressResponse addressDTO = new AddressResponse();
         BeanUtils.copyProperties(addressRepository.save(newAddress), addressDTO);
 
         return addressDTO;
@@ -87,64 +86,64 @@ public class AddressService {
      * @throws ResourceNotFoundException if customer or address not found
      */
     // UPDATE ADDRESS
-    public AddressDTO updateAddress(Long customerId, Long addressId, UpdateAddressRequestDTO dto) {
+    public AddressResponse updateAddress(Long customerId, Long addressId, UpdateAddressRequest dto) {
         if (!customerRepository.existsById(customerId))
             throw new ResourceNotFoundException("Customer not found with ID: " + customerId);
 
-        Address address = addressRepository
+        Address existingAddress = addressRepository
                 .findByAddressIdAndCustomerId(addressId, customerId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Address not found for this customer")
                 );
 
         if (dto.getCustomerName() != null)
-            address.setCustomerName(dto.getCustomerName());
+            existingAddress.setCustomerName(dto.getCustomerName());
 
         if (dto.getHouseNumber() != null)
-            address.setHouseNumber(dto.getHouseNumber());
+            existingAddress.setHouseNumber(dto.getHouseNumber());
 
         if (dto.getBuildingName() != null)
-            address.setBuildingName(dto.getBuildingName());
+            existingAddress.setBuildingName(dto.getBuildingName());
 
         if (dto.getArea() != null)
-            address.setArea(dto.getArea());
+            existingAddress.setArea(dto.getArea());
 
         if (dto.getLandmark() != null)
-            address.setLandmark(dto.getLandmark());
+            existingAddress.setLandmark(dto.getLandmark());
 
         if (dto.getCity() != null)
-            address.setCity(dto.getCity());
+            existingAddress.setCity(dto.getCity());
 
         if (dto.getState() != null)
-            address.setState(dto.getState());
+            existingAddress.setState(dto.getState());
 
         if (dto.getCountryCode() != null) {
             validateCountryCode(dto.getCountryCode());
-            address.setCountryCode(dto.getCountryCode());
+            existingAddress.setCountryCode(dto.getCountryCode());
         }
 
         if (dto.getPinCode() != null)
-            address.setPinCode(dto.getPinCode());
+            existingAddress.setPinCode(dto.getPinCode());
 
         if (dto.getLatitude() != null)
-            address.setLatitude(dto.getLatitude());
+            existingAddress.setLatitude(dto.getLatitude());
 
         if (dto.getLongitude() != null)
-            address.setLongitude(dto.getLongitude());
+            existingAddress.setLongitude(dto.getLongitude());
 
         if (dto.getAddressType() != null)
-            address.setAddressType(dto.getAddressType());
+            existingAddress.setAddressType(dto.getAddressType());
 
         if (dto.getLabelName() != null)
-            address.setLabelName(dto.getLabelName());
+            existingAddress.setLabelName(dto.getLabelName());
 
         if (dto.getIsDefault() != null && dto.getIsDefault()) {
             addressRepository.resetDefaultForCustomer(customerId, addressId);
-            address.setIsDefault(dto.getIsDefault());
+            existingAddress.setIsDefault(dto.getIsDefault());
         }
 
-        AddressDTO addressDTO = new AddressDTO();
-        BeanUtils.copyProperties(addressRepository.save(address), addressDTO);
+        AddressResponse addressDTO = new AddressResponse();
+        BeanUtils.copyProperties(addressRepository.save(existingAddress), addressDTO);
 
         return addressDTO;
     }
@@ -184,11 +183,11 @@ public class AddressService {
      * @throws ResourceNotFoundException if customer or address not found
      */
     // GET ADDRESS BY ID
-    public AddressDTO getAddressById(Long customerId, Long addressId) {
+    public AddressResponse getAddressById(Long customerId, Long addressId) {
         if (!customerRepository.existsById(customerId))
             throw new ResourceNotFoundException("Customer not found with ID: " + customerId);
 
-        Address address = addressRepository
+        Address customerAddress = addressRepository
                 .findByAddressIdAndCustomerId(addressId, customerId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
@@ -196,8 +195,8 @@ public class AddressService {
                         )
                 );
 
-        AddressDTO addressDTO = new AddressDTO();
-        BeanUtils.copyProperties(address, addressDTO);
+        AddressResponse addressDTO = new AddressResponse();
+        BeanUtils.copyProperties(customerAddress, addressDTO);
 
         return addressDTO;
     }
@@ -210,15 +209,16 @@ public class AddressService {
      * @throws ResourceNotFoundException if customer not found
      */
     // GET ALL ADDRESSES
-    public List<AddressDTO> getAllAddresses(Long customerId) {
+    public List<AddressResponse> getAllAddresses(Long customerId) {
         if (!customerRepository.existsById(customerId))
             throw new ResourceNotFoundException("Customer not found with ID: " + customerId);
 
-        List<Address> addresses = addressRepository.findByCustomerId(customerId);
+        List<Address> allCustomerAddresses = addressRepository.findByCustomerId(customerId);
 
-        return addresses.stream()
+        //return allCustomerAddresses;
+        return allCustomerAddresses.stream()
                 .map(address -> {
-                    AddressDTO dto = new AddressDTO();
+                    AddressResponse dto = new AddressResponse();
                     BeanUtils.copyProperties(address, dto);
                     return dto;
                 })

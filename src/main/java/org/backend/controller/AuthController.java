@@ -2,7 +2,6 @@ package org.backend.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -10,14 +9,13 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.backend.dto.*;
-import org.backend.dto.auth.request.GenerateTokenRequest;
-import org.backend.dto.auth.request.SendOtpRequest;
-import org.backend.dto.auth.request.VerifyOtpRequest;
-import org.backend.dto.auth.response.AuthResponseDTO;
-import org.backend.dto.auth.response.RefreshTokenResponseDTO;
-import org.backend.dto.auth.response.SendOtpResponse;
-import org.backend.dto.common.ApiResponseDto;
+import org.backend.dto.common.ApiResponseDTO;
+import org.backend.dto.request.GenerateTokenRequest;
+import org.backend.dto.request.SendOtpRequest;
+import org.backend.dto.request.VerifyOtpRequest;
+import org.backend.dto.response.AuthResponse;
+import org.backend.dto.response.RefreshTokenResponse;
+import org.backend.dto.response.SendOtpResponse;
 import org.backend.service.AuthService;
 import org.backend.service.OtpService;
 import org.springframework.http.MediaType;
@@ -160,11 +158,11 @@ public class AuthController {
 
             )
     })
-    public ResponseEntity<ApiResponseDto<AuthResponseDTO>> verifyOtp(
+    public ResponseEntity<ApiResponseDTO<AuthResponse>> verifyOtp(
             @Valid @RequestBody VerifyOtpRequest request, HttpServletRequest httpRequest) {
-        AuthResponseDTO response = otpService.validateOtp(request, httpRequest);
+        AuthResponse response = otpService.validateOtp(request, httpRequest);
         return ResponseEntity.ok(
-                ApiResponseDto.<AuthResponseDTO>builder()
+                ApiResponseDTO.<AuthResponse>builder()
                         .status(true)
                         .message("OTP verified successfully")
                         .data(response)
@@ -218,12 +216,12 @@ public class AuthController {
 
             )
     })
-    public ResponseEntity<ApiResponseDto<RefreshTokenResponseDTO>> refreshToken(
+    public ResponseEntity<ApiResponseDTO<RefreshTokenResponse>> refreshToken(
             @RequestHeader("Authorization") String authorizationHeader, HttpServletRequest httpRequest) {
         String refreshToken = authorizationHeader.replace("Bearer ", "").trim();
-        RefreshTokenResponseDTO response = authService.refreshToken(refreshToken, httpRequest);
+        RefreshTokenResponse response = authService.refreshToken(refreshToken, httpRequest);
         return ResponseEntity.ok(
-                ApiResponseDto.<RefreshTokenResponseDTO>builder()
+                ApiResponseDTO.<RefreshTokenResponse>builder()
                         .status(true)
                         .message("Token refreshed successfully")
                         .data(response)
@@ -272,13 +270,13 @@ public class AuthController {
                     content = @Content
             )
     })
-    public ResponseEntity<ApiResponseDto<AuthResponseDTO>> generateToken(
+    public ResponseEntity<ApiResponseDTO<AuthResponse>> generateToken(
             @Valid @RequestBody GenerateTokenRequest request, HttpServletRequest httpRequest) {
         String mobileNumber = request.getMobile();
-        AuthResponseDTO response = authService.generateToken(mobileNumber, httpRequest);
+        AuthResponse response = authService.generateToken(mobileNumber, httpRequest);
 
         return ResponseEntity.ok(
-                ApiResponseDto.<AuthResponseDTO>builder()
+                ApiResponseDTO.<AuthResponse>builder()
                         .status(true)
                         .message("Token generated successfully")
                         .data(response)

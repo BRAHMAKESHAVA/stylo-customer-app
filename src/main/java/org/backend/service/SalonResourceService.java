@@ -1,8 +1,9 @@
 package org.backend.service;
 
 import lombok.RequiredArgsConstructor;
-import org.backend.dto.SalonResourceDTO;
-import org.backend.dto.UpdateSalonResourceRequestDTO;
+import org.backend.dto.request.CreateSalonResourceRequest;
+import org.backend.dto.request.UpdateSalonResourceRequest;
+import org.backend.dto.response.SalonResourceResponse;
 import org.backend.exception.BadRequestException;
 import org.backend.exception.DuplicateResourceException;
 import org.backend.exception.ResourceNotFoundException;
@@ -23,7 +24,7 @@ public class SalonResourceService {
      * Create a new resource for a salon.
      */
     // CREATE RESOURCE
-    public SalonResourceDTO createResource(SalonResourceDTO request) {
+    public SalonResourceResponse createResource(CreateSalonResourceRequest request) {
 
         salonRepository.findById(request.getSalonId())
                 .orElseThrow(() -> new ResourceNotFoundException("Salon not found"));
@@ -37,7 +38,7 @@ public class SalonResourceService {
         SalonResource resource = new SalonResource();
         BeanUtils.copyProperties(request, resource);
 
-        SalonResourceDTO response = new SalonResourceDTO();
+        SalonResourceResponse response = new SalonResourceResponse();
         BeanUtils.copyProperties(resourceRepository.save(resource), response);
 
         return response;
@@ -47,21 +48,26 @@ public class SalonResourceService {
      * Retrieve a resource by salon ID.
      */
     // GET RESOURCE BY SALON
-    public SalonResource getResourceBySalonId(Long salonId) {
+    public SalonResourceResponse getResourceBySalonId(Long salonId) {
         salonRepository.findById(salonId)
                 .orElseThrow(() -> new ResourceNotFoundException("Salon not found"));
 
-        return resourceRepository.findBySalonId(salonId)
+        SalonResource resource = resourceRepository.findBySalonId(salonId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Resource not found for salon")
                 );
+
+        SalonResourceResponse response = new SalonResourceResponse();
+        BeanUtils.copyProperties(resource, response);
+
+        return response;
     }
 
     /**
      * Update an existing resource.
      */
     // UPDATE RESOURCE
-    public SalonResourceDTO updateResource(Long resourceId, UpdateSalonResourceRequestDTO request) {
+    public SalonResourceResponse updateResource(Long resourceId, UpdateSalonResourceRequest request) {
 
         if (request.getSalonId() == null) {
             throw new BadRequestException(
@@ -85,7 +91,7 @@ public class SalonResourceService {
             resource.setResourceCount(request.getResourceCount());
         }
 
-        SalonResourceDTO response = new SalonResourceDTO();
+        SalonResourceResponse response = new SalonResourceResponse();
         BeanUtils.copyProperties(resourceRepository.save(resource), response);
 
         return response;

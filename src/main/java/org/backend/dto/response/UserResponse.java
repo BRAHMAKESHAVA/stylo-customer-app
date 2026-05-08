@@ -1,4 +1,4 @@
-package org.backend.dto.user.response;
+package org.backend.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
@@ -10,7 +10,7 @@ import org.backend.enums.Role;
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class UserRegisterResponseDTO {
+public class UserResponse {
     private Long id;
     private String firstName;
     private String lastName;

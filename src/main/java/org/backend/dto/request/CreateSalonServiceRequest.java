@@ -17,7 +17,7 @@ import java.math.BigDecimal;
         name = "Salon Service DTO",
         description = "DTO used for creating salon services"
 )
-public class SalonServiceDTO {
+public class CreateSalonServiceRequest {
 
     @Schema(
             description = "Unique salon ID",

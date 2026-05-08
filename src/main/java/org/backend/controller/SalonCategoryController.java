@@ -2,16 +2,16 @@ package org.backend.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.backend.dto.ServiceCategoryDTO;
-import org.backend.dto.UpdateServiceCategoryRequestDTO;
-import org.backend.dto.common.ApiResponseDto;
+import org.backend.dto.common.ApiResponseDTO;
 import org.backend.dto.common.PageResponse;
+import org.backend.dto.request.CreateServiceCategoryRequest;
+import org.backend.dto.request.UpdateServiceCategoryRequest;
+import org.backend.dto.response.ServiceCategoryResponse;
 import org.backend.model.ServiceCategory;
 import org.backend.service.CategoryService;
 import org.springframework.http.MediaType;
@@ -89,10 +89,10 @@ public class SalonCategoryController {
                     content = @Content
             )
     })
-    public ResponseEntity<?> createCategory(@Valid @RequestBody ServiceCategoryDTO category){
+    public ResponseEntity<?> createCategory(@Valid @RequestBody CreateServiceCategoryRequest category){
 
         return ResponseEntity.ok(
-                ApiResponseDto.<ServiceCategoryDTO>builder()
+                ApiResponseDTO.<ServiceCategoryResponse>builder()
                         .status(true)
                         .message("Service category created successfully.")
                         .data(categoryService.createCategory(category))
@@ -155,10 +155,10 @@ public class SalonCategoryController {
                     content = @Content
             )
     })
-    public ResponseEntity<?> updateCategory(@PathVariable Long categoryId, @Valid @RequestBody UpdateServiceCategoryRequestDTO category){
+    public ResponseEntity<?> updateCategory(@PathVariable Long categoryId, @Valid @RequestBody UpdateServiceCategoryRequest category){
 
         return ResponseEntity.ok(
-                ApiResponseDto.<ServiceCategoryDTO>builder()
+                ApiResponseDTO.<ServiceCategoryResponse>builder()
                         .status(true)
                         .message("Service category updated successfully.")
                         .data(categoryService.updateCategory(categoryId, category))
@@ -214,7 +214,7 @@ public class SalonCategoryController {
         categoryService.deleteCategory(salonId,categoryId);
 
         return ResponseEntity.ok(
-                ApiResponseDto.<Void>builder()
+                ApiResponseDTO.<Void>builder()
                         .status(true)
                         .message("Service category deleted successfully.")
                         .data(null)
@@ -266,14 +266,14 @@ public class SalonCategoryController {
     })
     public ResponseEntity<?> getCategoryBySalonId(@PathVariable Long salonId){
 
-        List<ServiceCategory> categories = categoryService.getCategoriesBySalon(salonId);
+        List<ServiceCategoryResponse> categories = categoryService.getCategoriesBySalon(salonId);
 
         String message = categories.isEmpty()
                 ? "No service categories found for this salon."
                 : "Service categories fetched successfully for the salon.";
 
         return ResponseEntity.ok(
-                ApiResponseDto.<List<ServiceCategory>>builder()
+                ApiResponseDTO.<List<ServiceCategoryResponse>>builder()
                         .status(true)
                         .message(message)
                         .data(categories)
@@ -324,12 +324,12 @@ public class SalonCategoryController {
                     content = @Content
             )
     })
-    public ResponseEntity<ApiResponseDto<PageResponse<ServiceCategory>>> getAllCategories(
+    public ResponseEntity<ApiResponseDTO<PageResponse<ServiceCategory>>> getAllCategories(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
         return ResponseEntity.ok(
-                ApiResponseDto.<PageResponse<ServiceCategory>>builder()
+                ApiResponseDTO.<PageResponse<ServiceCategory>>builder()
                         .status(true)
                         .message("Categories fetched successfully")
                         .data(categoryService.getAllCategories(page, size))

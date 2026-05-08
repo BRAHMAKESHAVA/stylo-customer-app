@@ -2,8 +2,8 @@ package org.backend.service;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.backend.dto.auth.response.AuthResponseDTO;
-import org.backend.dto.auth.response.RefreshTokenResponseDTO;
+import org.backend.dto.response.AuthResponse;
+import org.backend.dto.response.RefreshTokenResponse;
 import org.backend.exception.ResourceNotFoundException;
 import org.backend.model.Customer;
 import org.backend.model.Users;
@@ -58,7 +58,7 @@ public class AuthService {
      * @throws ResourceNotFoundException If no user is found with the extracted mobile number from the refresh token.
      */
     // REFRESH TOKEN
-    public RefreshTokenResponseDTO refreshToken(String refreshToken, HttpServletRequest request) {
+    public RefreshTokenResponse refreshToken(String refreshToken, HttpServletRequest request) {
         boolean isGuest = jwtUtill.isGuestToken(refreshToken);
         String source = extractSource(request);
         String subject = jwtUtill.getSubject(refreshToken);
@@ -69,20 +69,20 @@ public class AuthService {
             Users user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            return RefreshTokenResponseDTO.builder()
+            return RefreshTokenResponse.builder()
                     .accessToken(jwtUtill.generateAccessToken(user, source))
                     .refreshToken(refreshToken)
                     .build();
         }
 
-        return RefreshTokenResponseDTO.builder()
+        return RefreshTokenResponse.builder()
                 .accessToken(jwtUtill.generateAccessToken(null, source))
                 .refreshToken(refreshToken)
                 .build();
     }
 
     // GENERATE TOKEN
-    public AuthResponseDTO generateToken(String mobile, HttpServletRequest httpRequest) {
+    public AuthResponse generateToken(String mobile, HttpServletRequest httpRequest) {
         Users user = userRepository.findByMobile(mobile)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
@@ -92,7 +92,7 @@ public class AuthService {
         String accessToken = jwtUtill.generateAccessToken(user, source);
         String refreshToken = jwtUtill.generateRefreshToken(user, source);
 
-        return AuthResponseDTO.builder()
+        return AuthResponse.builder()
                 .userId(user.getId())
                 .customerId(customer != null ? customer.getCustomerId() : null)
                 .accessToken(accessToken)

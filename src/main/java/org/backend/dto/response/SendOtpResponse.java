@@ -1,4 +1,4 @@
-package org.backend.dto.auth.response;
+package org.backend.dto.response;
 
 import lombok.Builder;
 import lombok.Data;

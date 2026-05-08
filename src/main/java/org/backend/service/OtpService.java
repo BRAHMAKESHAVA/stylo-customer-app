@@ -3,10 +3,10 @@ package org.backend.service;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.backend.dto.auth.request.SendOtpRequest;
-import org.backend.dto.auth.request.VerifyOtpRequest;
-import org.backend.dto.auth.response.AuthResponseDTO;
-import org.backend.dto.auth.response.SendOtpResponse;
+import org.backend.dto.request.SendOtpRequest;
+import org.backend.dto.request.VerifyOtpRequest;
+import org.backend.dto.response.AuthResponse;
+import org.backend.dto.response.SendOtpResponse;
 import org.backend.enums.Role;
 import org.backend.exception.OtpException;
 import org.backend.model.Customer;
@@ -115,7 +115,7 @@ public class OtpService {
      * @return
      */
     // VALIDATE OTP
-    public AuthResponseDTO validateOtp(VerifyOtpRequest otpVerifyRequest, HttpServletRequest request) {
+    public AuthResponse validateOtp(VerifyOtpRequest otpVerifyRequest, HttpServletRequest request) {
         String mobile = otpVerifyRequest.getMobile();
         Role role = otpVerifyRequest.getRole();
         String userOtp = otpVerifyRequest.getOtp();
@@ -177,7 +177,7 @@ public class OtpService {
         redisTemplate.delete(attemptsKey);
         //redisTemplate.opsForValue().set("verified:mobile:" + mobile, mobile);
 
-        return AuthResponseDTO.builder()
+        return AuthResponse.builder()
                 .userId(userId)
                 .customerId(customerId)
                 .accessToken(accessToken)

@@ -2,16 +2,15 @@ package org.backend.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.backend.dto.SalonResourceDTO;
-import org.backend.dto.UpdateSalonResourceRequestDTO;
-import org.backend.dto.common.ApiResponseDto;
-import org.backend.model.SalonResource;
+import org.backend.dto.common.ApiResponseDTO;
+import org.backend.dto.request.CreateSalonResourceRequest;
+import org.backend.dto.request.UpdateSalonResourceRequest;
+import org.backend.dto.response.SalonResourceResponse;
 import org.backend.service.SalonResourceService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -89,10 +88,10 @@ public class SalonResourceController {
                     content = @Content
             )
     })
-    public ResponseEntity<ApiResponseDto<SalonResourceDTO>> createResource(@Valid @RequestBody SalonResourceDTO request) {
+    public ResponseEntity<ApiResponseDTO<SalonResourceResponse>> createResource(@Valid @RequestBody CreateSalonResourceRequest request) {
 
         return ResponseEntity.ok(
-                ApiResponseDto.<SalonResourceDTO>builder()
+                ApiResponseDTO.<SalonResourceResponse>builder()
                         .status(true)
                         .message("Salon resource created successfully.")
                         .data(resourceService.createResource(request))
@@ -158,10 +157,10 @@ public class SalonResourceController {
                     content = @Content
             )
     })
-    public ResponseEntity<ApiResponseDto<SalonResourceDTO>> updateResource(@PathVariable Long id, @Valid @RequestBody UpdateSalonResourceRequestDTO request) {
+    public ResponseEntity<ApiResponseDTO<SalonResourceResponse>> updateResource(@PathVariable Long id, @Valid @RequestBody UpdateSalonResourceRequest request) {
 
         return ResponseEntity.ok(
-                ApiResponseDto.<SalonResourceDTO>builder()
+                ApiResponseDTO.<SalonResourceResponse>builder()
                         .status(true)
                         .message("Salon resource updated successfully.")
                         .data(resourceService.updateResource(id, request))
@@ -213,11 +212,11 @@ public class SalonResourceController {
                     content = @Content
             )
     })
-    public ResponseEntity<ApiResponseDto<SalonResource>> getResourceBySalonId(@PathVariable Long salonId) {
-        SalonResource resource = resourceService.getResourceBySalonId(salonId);
+    public ResponseEntity<ApiResponseDTO<SalonResourceResponse>> getResourceBySalonId(@PathVariable Long salonId) {
+        SalonResourceResponse resource = resourceService.getResourceBySalonId(salonId);
 
         return ResponseEntity.ok(
-                ApiResponseDto.<SalonResource>builder()
+                ApiResponseDTO.<SalonResourceResponse>builder()
                         .status(true)
                         .message("Salon resource fetched successfully.")
                         .data(resource)
@@ -271,14 +270,14 @@ public class SalonResourceController {
             )
 
 })
-    public ResponseEntity<ApiResponseDto<Void>> deleteResource(
+    public ResponseEntity<ApiResponseDTO<Void>> deleteResource(
             @PathVariable Long salonId,
             @PathVariable Long resourceId) {
 
         resourceService.deleteResource(salonId, resourceId);
 
         return ResponseEntity.ok(
-                ApiResponseDto.<Void>builder()
+                ApiResponseDTO.<Void>builder()
                         .status(true)
                         .message("Salon resource deleted successfully.")
                         .data(null)

@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ApiResponseDto<T> {
+public class ApiResponseDTO<T> {
     private boolean status;
     private String message;
     private T data;

@@ -1,4 +1,4 @@
-package org.backend.dto;
+package org.backend.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -13,7 +13,7 @@ import java.math.BigDecimal;
         name = "Update Service Request",
         description = "DTO used for partially updating salon service details"
 )
-public class UpdateServiceRequest {
+public class UpdateSalonServiceRequest {
 
     @Schema(
             description = "Unique salon ID",

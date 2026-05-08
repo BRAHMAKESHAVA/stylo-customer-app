@@ -1,8 +1,7 @@
-package org.backend.dto;
+package org.backend.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.Min;
 import lombok.*;
 
 @Getter
@@ -12,10 +11,16 @@ import lombok.*;
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Schema(
-        name = "Update Salon Resource Request",
-        description = "DTO used for updating salon resource capacity details"
+        name = "Salon Resource Response",
+        description = "DTO used for returning salon resource details"
 )
-public class UpdateSalonResourceRequestDTO {
+public class SalonResourceResponse {
+
+    @Schema(
+            description = "Unique resource ID",
+            example = "1"
+    )
+    private Long id;
 
     @Schema(
             description = "Unique salon ID",
@@ -24,9 +29,8 @@ public class UpdateSalonResourceRequestDTO {
     private Long salonId;
 
     @Schema(
-            description = "Updated available salon resources or seats",
-            example = "15"
+            description = "Available salon resources or seats",
+            example = "10"
     )
-    @Min(value = 1, message = "Resource count must be at least 1")
     private Integer resourceCount;
 }

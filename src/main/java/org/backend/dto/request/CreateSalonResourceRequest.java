@@ -1,4 +1,4 @@
-package org.backend.dto;
+package org.backend.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -15,7 +15,7 @@ import lombok.*;
         name = "Salon Resource DTO",
         description = "DTO used for managing salon resource capacity details"
 )
-public class SalonResourceDTO {
+public class CreateSalonResourceRequest {
 
     @Schema(
             description = "Unique salon ID",

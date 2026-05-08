@@ -1,4 +1,4 @@
-package org.backend.dto.user.request;
+package org.backend.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
@@ -10,7 +10,7 @@ import org.backend.validation.annotation.ValidGender;
         name = "User Update Request",
         description = "Request payload used to update user profile details"
 )
-public class UserUpdateRequestDTO {
+public class UserUpdateRequest {
 
     @Schema(
             description = "User's first name. Only alphabets and spaces are allowed",

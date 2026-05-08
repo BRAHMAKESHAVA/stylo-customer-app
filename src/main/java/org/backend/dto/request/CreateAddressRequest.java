@@ -1,7 +1,9 @@
-package org.backend.dto;
+package org.backend.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.*;
 import lombok.*;
 import org.backend.enums.AddressType;
@@ -17,22 +19,34 @@ import java.math.BigDecimal;
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Schema(
-        name = "Update Address Request",
-        description = "DTO used to update customer address details"
+        name = "Create Address Request",
+        description = "DTO used for storing customer address details"
 )
-public class UpdateAddressRequestDTO {
+public class CreateAddressRequest {
+
+    @Schema(
+            description = "Unique customer ID",
+            example = "101",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
+    @NotNull(message = "Customer ID cannot be null")
+    private Long customerId;
 
     @Schema(
             description = "Customer full name",
-            example = "Brahma"
+            example = "Brahma",
+            requiredMode = Schema.RequiredMode.REQUIRED
     )
+    @NotBlank(message = "Customer name is required")
     @Size(max = 40, message = "Customer name cannot exceed 40 characters")
     private String customerName;
 
     @Schema(
             description = "House or flat number",
-            example = "A-203"
+            example = "A-203",
+            requiredMode = Schema.RequiredMode.REQUIRED
     )
+    @NotBlank(message = "House number is required")
     @Size(max = 20, message = "House number cannot exceed 20 characters")
     private String houseNumber;
 
@@ -59,33 +73,42 @@ public class UpdateAddressRequestDTO {
 
     @Schema(
             description = "City name",
-            example = "Bangalore"
+            example = "Bangalore",
+            requiredMode = Schema.RequiredMode.REQUIRED
     )
+    @NotBlank(message = "City is required")
     @Size(max = 30, message = "City cannot exceed 30 characters")
     private String city;
 
     @Schema(
             description = "State name",
-            example = "Karnataka"
+            example = "Karnataka",
+            requiredMode = Schema.RequiredMode.REQUIRED
     )
+    @NotBlank(message = "State is required")
     @Size(max = 40, message = "State cannot exceed 40 characters")
     private String state;
 
     @Schema(
             description = "Country dialing code",
-            example = "+91"
+            example = "+91",
+            requiredMode = Schema.RequiredMode.REQUIRED
     )
     @Size(max = 10, message = "Country code cannot exceed 10 characters")
+    @NotBlank(message = "Country code is required")
     private String countryCode;
 
     @Schema(
             description = "6-digit postal PIN code",
-            example = "560035"
+            example = "560035",
+            requiredMode = Schema.RequiredMode.REQUIRED
     )
+    @NotBlank(message = "Pin code is required")
     @Pattern(
             regexp = "^[1-9][0-9]{5}$",
             message = "Invalid PIN code. It must be a valid 6-digit number"
     )
+    @Size(max = 10, message = "Pin code cannot exceed 10 characters")
     private String pinCode;
 
     @Schema(
@@ -105,28 +128,26 @@ public class UpdateAddressRequestDTO {
     @Schema(
             description = "Type of address",
             example = "HOME",
-            allowableValues = {"HOME", "WORK", "OTHER"}
+            allowableValues = {"HOME", "WORK", "OTHER"},
+            requiredMode = Schema.RequiredMode.REQUIRED
     )
+    @NotNull(message = "Address type is required")
+    @Enumerated(EnumType.STRING)
     private AddressType addressType;
 
     @Schema(
             description = "Custom address label",
-            example = "Stylo Home Address"
+            example = "Stylo Home Address",
+            requiredMode = Schema.RequiredMode.REQUIRED
     )
+    @NotBlank(message = "Label name is required")
     @Size(max = 100, message = "Label name cannot exceed 100 characters")
     private String labelName;
 
     @Schema(
-            description = "Customer email address",
-            example = "support@stylo.com"
+            description = "Marks whether this address is default",
+            example = "true",
+            defaultValue = "false"
     )
-    @Email(message = "Invalid email format")
-    @Size(max = 100, message = "Email cannot exceed 100 characters")
-    private String email;
-
-    @Schema(
-            description = "Marks address as default",
-            example = "true"
-    )
-    private Boolean isDefault;
+    private Boolean isDefault = false;
 }

@@ -1,4 +1,4 @@
-package org.backend.dto.auth.request;
+package org.backend.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -11,10 +11,10 @@ import org.backend.enums.Role;
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Schema(
-        name = "Send OTP Request",
-        description = "DTO used for sending OTP to mobile number based on user role"
+        name = "Verify OTP Request",
+        description = "DTO used for verifying OTP during login or authentication"
 )
-public class SendOtpRequest {
+public class VerifyOtpRequest {
 
     @Schema(
             description = "Registered Indian mobile number",
@@ -29,11 +29,23 @@ public class SendOtpRequest {
     private String mobile;
 
     @Schema(
-            description = "Role of the user requesting OTP",
+            description = "Role of the user verifying OTP",
             example = "CUSTOMER",
             allowableValues = {"CUSTOMER", "PARTNER", "ADMIN","CAPTAIN"},
             requiredMode = Schema.RequiredMode.REQUIRED
     )
     @NotNull(message = "Role is required")
     private Role role;
+
+    @Schema(
+            description = "4-digit OTP sent to mobile number",
+            example = "1234",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
+    @NotBlank(message = "OTP is required")
+    @Pattern(
+            regexp = "^\\d{4}$",
+            message = "OTP must be a 4-digit number"
+    )
+    private String otp;
 }

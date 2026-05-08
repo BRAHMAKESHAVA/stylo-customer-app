@@ -3,15 +3,17 @@ package org.backend.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.backend.dto.*;
-import org.backend.dto.common.ApiResponseDto;
-import org.backend.model.SalonService;
+import org.backend.dto.CategoryGroupDTO;
+import org.backend.dto.CategoryResponse;
+import org.backend.dto.CreateSalonServiceRequest;
+import org.backend.dto.common.ApiResponseDTO;
+import org.backend.dto.request.UpdateSalonServiceRequest;
+import org.backend.dto.response.SalonServiceResponse;
 import org.backend.service.SalonServices;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
@@ -64,11 +66,11 @@ public class SalonServiceController {
                     content = @Content
             )
     })
-    public ResponseEntity<ApiResponseDto<List<CategoryResponse>>> getAllServices() {
+    public ResponseEntity<ApiResponseDTO<List<CategoryResponse>>> getAllServices() {
         List<CategoryResponse> services = serviceManager.getAllServices();
 
         return ResponseEntity.ok(
-                ApiResponseDto.<List<CategoryResponse>>builder()
+                ApiResponseDTO.<List<CategoryResponse>>builder()
                         .status(true)
                         .message("Services fetched successfully")
                         .data(services)
@@ -120,9 +122,9 @@ public class SalonServiceController {
                     content = @Content
             )
     })
-    public ResponseEntity<?> createService(@Valid @RequestBody SalonServiceDTO request){
+    public ResponseEntity<?> createService(@Valid @RequestBody CreateSalonServiceRequest request){
         return ResponseEntity.ok(
-                ApiResponseDto.<SalonServiceDTO>builder()
+                ApiResponseDTO.<SalonServiceResponse>builder()
                         .status(true)
                         .message("Service created successfully.")
                         .data(serviceManager.createService(request))
@@ -182,9 +184,9 @@ public class SalonServiceController {
     public ResponseEntity<?> updateService(
             @Parameter(description = "Unique identifier of the service to update")
             @PathVariable Long serviceId,
-            @Valid @RequestBody UpdateServiceRequest request){
+            @Valid @RequestBody UpdateSalonServiceRequest request){
         return ResponseEntity.ok(
-                ApiResponseDto.<SalonServiceDTO>builder()
+                ApiResponseDTO.<SalonServiceResponse>builder()
                         .status(true)
                         .message("Service updated successfully.")
                         .data(serviceManager.updateService(serviceId, request))
@@ -244,14 +246,14 @@ public class SalonServiceController {
         // With pagination
         if (pageNo != null && pageSize != null) {
 
-            Page<SalonService> page = serviceManager.getServicesBySalon(salonId, pageNo, pageSize);
+            Page<SalonServiceResponse> page = serviceManager.getServicesBySalon(salonId, pageNo, pageSize);
 
             String message = page.isEmpty()
                     ? "No services found for this salon."
                     : "Services fetched successfully with pagination.";
 
             return ResponseEntity.ok(
-                    ApiResponseDto.<Page<SalonService>>builder()
+                    ApiResponseDTO.<Page<SalonServiceResponse>>builder()
                             .status(true)
                             .message(message)
                             .data(page)
@@ -267,7 +269,7 @@ public class SalonServiceController {
                 : "Services fetched successfully.";
 
         return ResponseEntity.ok(
-                ApiResponseDto.<List<CategoryGroupDTO>>builder()
+                ApiResponseDTO.<List<CategoryGroupDTO>>builder()
                         .status(true)
                         .message(message)
                         .data(services)
@@ -326,7 +328,7 @@ public class SalonServiceController {
             @Parameter(description = "Unique identifier of the category")
             @PathVariable Long categoryId){
 
-        List<SalonService> services =
+        List<SalonServiceResponse> services =
                 serviceManager.getServicesByCategoryAndSalon(salonId, categoryId);
 
         String message = services.isEmpty()
@@ -334,7 +336,7 @@ public class SalonServiceController {
                 : "Services fetched successfully for the selected category.";
 
         return ResponseEntity.ok(
-                ApiResponseDto.<List<SalonService>>builder()
+                ApiResponseDTO.<List<SalonServiceResponse>>builder()
                         .status(true)
                         .message(message)
                         .data(services)
@@ -389,10 +391,10 @@ public class SalonServiceController {
             @Parameter(description = "Unique identifier of the service")
             @PathVariable Long serviceId){
 
-        SalonService service = serviceManager.getServiceById(serviceId);
+        SalonServiceResponse service = serviceManager.getServiceById(serviceId);
 
         return ResponseEntity.ok(
-                ApiResponseDto.<SalonService>builder()
+                ApiResponseDTO.<SalonServiceResponse>builder()
                         .status(true)
                         .message("Service details fetched successfully.")
                         .data(service)

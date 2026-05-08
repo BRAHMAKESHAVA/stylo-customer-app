@@ -3,16 +3,16 @@ package org.backend.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.backend.dto.CreateAddressRequestDTO;
-import org.backend.dto.UpdateAddressRequestDTO;
-import org.backend.dto.common.AddressDTO;
-import org.backend.dto.common.ApiResponseDto;
+import lombok.extern.slf4j.Slf4j;
+import org.backend.dto.common.ApiResponseDTO;
+import org.backend.dto.request.CreateAddressRequest;
+import org.backend.dto.request.UpdateAddressRequest;
+import org.backend.dto.response.AddressResponse;
 import org.backend.service.AddressService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +28,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/customer-address")
+@Slf4j
 @RequiredArgsConstructor
 @Tag(
         name = "Customer Address Management",
@@ -89,12 +90,15 @@ public class CustomerAddressController {
                     content = @Content
             )
     })
-    public ResponseEntity<ApiResponseDto<AddressDTO>> createAddress(
+    public ResponseEntity<ApiResponseDTO<AddressResponse>> createAddress(
             @Parameter(description = "Unique identifier of the customer")
             @PathVariable Long customerId,
-            @Valid @RequestBody AddressDTO address) {
+            @Valid @RequestBody CreateAddressRequest address) {
+
+        log.info("Received request to create address for customer ID {}: {}", customerId, address);
+
         return ResponseEntity.ok()
-                .body(ApiResponseDto.<AddressDTO>builder()
+                .body(ApiResponseDTO.<AddressResponse>builder()
                         .status(true)
                         .message("Address created successfully")
                         .data(addressService.createAddress(customerId, address))
@@ -151,14 +155,14 @@ public class CustomerAddressController {
                     content = @Content
             )
     })
-    public ResponseEntity<ApiResponseDto<AddressDTO>> updateAddress(
+    public ResponseEntity<ApiResponseDTO<AddressResponse>> updateAddress(
             @Parameter(description = "Unique identifier of the customer")
             @PathVariable Long customerId,
             @Parameter(description = "Unique identifier of the address to update")
             @PathVariable Long addressId,
-            @Valid @RequestBody UpdateAddressRequestDTO addressDTO) {
+            @Valid @RequestBody UpdateAddressRequest addressDTO) {
         return ResponseEntity.ok(
-                ApiResponseDto.<AddressDTO>builder()
+                ApiResponseDTO.<AddressResponse>builder()
                         .status(true)
                         .message("Address updated successfully")
                         .data(addressService.updateAddress(customerId, addressId, addressDTO))
@@ -211,13 +215,13 @@ public class CustomerAddressController {
                     content = @Content
             )
     })
-    public ResponseEntity<ApiResponseDto<String>> deleteAddress(
+    public ResponseEntity<ApiResponseDTO<String>> deleteAddress(
             @Parameter(description = "Unique identifier of the customer")
             @PathVariable Long customerId,
             @Parameter(description = "Unique identifier of the address to delete")
             @PathVariable Long addressId) {
         addressService.deleteAddress(customerId, addressId);
-        return ResponseEntity.ok(ApiResponseDto.<String>builder()
+        return ResponseEntity.ok(ApiResponseDTO.<String>builder()
                         .status(true)
                         .message("Address deleted successfully")
                         .data(null)
@@ -270,9 +274,9 @@ public class CustomerAddressController {
                     content = @Content
             )
     })
-    public ResponseEntity<ApiResponseDto<AddressDTO>> getAddressById(@PathVariable Long customerId, @PathVariable Long addressId) {
+    public ResponseEntity<ApiResponseDTO<AddressResponse>> getAddressById(@PathVariable Long customerId, @PathVariable Long addressId) {
         return ResponseEntity.ok(
-                ApiResponseDto.<AddressDTO>builder()
+                ApiResponseDTO.<AddressResponse>builder()
                         .status(true)
                         .message("Address fetched successfully")
                         .data(addressService.getAddressById(customerId, addressId))
@@ -324,13 +328,14 @@ public class CustomerAddressController {
                     content = @Content
             )
     })
-    public ResponseEntity<ApiResponseDto<List<AddressDTO>>> getAllAddresses(
+    public ResponseEntity<ApiResponseDTO<List<AddressResponse>>> getAllAddresses(
             @Parameter(description = "Unique identifier of the customer")
             @PathVariable Long customerId) {
-        List<AddressDTO> addresses = addressService.getAllAddresses(customerId);
+
+        List<AddressResponse> addresses = addressService.getAllAddresses(customerId);
         String message = addresses.isEmpty() ? "No addresses found" : "Addresses fetched successfully";
         return ResponseEntity.ok(
-                ApiResponseDto.<List<AddressDTO>>builder()
+                ApiResponseDTO.<List<AddressResponse>>builder()
                         .status(true)
                         .message(message)
                         .data(addresses)

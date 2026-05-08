@@ -1,9 +1,10 @@
 package org.backend.service;
 
 import lombok.RequiredArgsConstructor;
-import org.backend.dto.ServiceCategoryDTO;
-import org.backend.dto.UpdateServiceCategoryRequestDTO;
 import org.backend.dto.common.PageResponse;
+import org.backend.dto.request.CreateServiceCategoryRequest;
+import org.backend.dto.request.UpdateServiceCategoryRequest;
+import org.backend.dto.response.ServiceCategoryResponse;
 import org.backend.exception.BadRequestException;
 import org.backend.exception.DuplicateResourceException;
 import org.backend.exception.ResourceNotFoundException;
@@ -41,7 +42,7 @@ public class CategoryService {
      * @throws DuplicateResourceException if category name already exists for the salon
      */
     // CREATE CATEGORY
-    public ServiceCategoryDTO createCategory(ServiceCategoryDTO category) {
+    public ServiceCategoryResponse createCategory(CreateServiceCategoryRequest category) {
 
         salonRepository.findById(category.getSalonId())
                 .orElseThrow(() ->
@@ -77,7 +78,7 @@ public class CategoryService {
         ServiceCategory newCateory = new ServiceCategory();
         BeanUtils.copyProperties(category, newCateory);
 
-        ServiceCategoryDTO response = new ServiceCategoryDTO();
+        ServiceCategoryResponse response = new ServiceCategoryResponse();
         BeanUtils.copyProperties(categoryRepository.save(newCateory), response);
 
         return response;
@@ -95,7 +96,7 @@ public class CategoryService {
      * @throws DuplicateResourceException if new category name already exists
      */
     // UPDATE CATEGORY
-    public ServiceCategoryDTO updateCategory(Long id, UpdateServiceCategoryRequestDTO request) {
+    public ServiceCategoryResponse updateCategory(Long id, UpdateServiceCategoryRequest request) {
         if (request.getSalonId() == null) {
             throw new BadRequestException(
                     "Salon ID is required to update the category."
@@ -140,7 +141,7 @@ public class CategoryService {
         if (request.getIsActive() != null)
             category.setIsActive(request.getIsActive());
 
-        ServiceCategoryDTO response = new ServiceCategoryDTO();
+        ServiceCategoryResponse response = new ServiceCategoryResponse();
         BeanUtils.copyProperties(categoryRepository.save(category), response);
 
         return response;
@@ -208,7 +209,7 @@ public class CategoryService {
      * @throws ResourceNotFoundException if salon not found
      */
     // GET CATEGORIES BY SALON
-    public List<ServiceCategory> getCategoriesBySalon(Long salonId) {
+    public List<ServiceCategoryResponse> getCategoriesBySalon(Long salonId) {
         salonRepository.findById(salonId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
@@ -216,6 +217,13 @@ public class CategoryService {
                         )
                 );
 
-        return categoryRepository.findBySalonId(salonId);
+        return categoryRepository.findBySalonId(salonId)
+                .stream()
+                .map(category -> {
+                    ServiceCategoryResponse dto = new ServiceCategoryResponse();
+                    BeanUtils.copyProperties(category, dto);
+                    return dto;
+                })
+                .toList();
     }
 }

@@ -2,13 +2,12 @@ package org.backend.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.backend.dto.*;
-import org.backend.dto.common.ApiResponseDto;
+import org.backend.dto.common.ApiResponseDTO;
 import org.backend.dto.common.PageResponse;
 import org.backend.service.SalonSearchService;
 import org.springframework.http.MediaType;
@@ -96,7 +95,7 @@ public class SalonSearchController {
             PageResponse<SalonDetailsDTO> response = salonSearchService.findNearbySalonsWithPagination(
                             latitude, longitude, distance, unit, page, size);
             return ResponseEntity.ok(
-                    ApiResponseDto.<PageResponse<SalonDetailsDTO>>builder()
+                    ApiResponseDTO.<PageResponse<SalonDetailsDTO>>builder()
                             .status(true)
                             .message("Nearby salons fetched successfully with pagination.")
                             .data(response)
@@ -108,7 +107,7 @@ public class SalonSearchController {
         List<SalonDetailsDTO> salons = salonSearchService.findNearbySalons(latitude, longitude, distance, unit);
         String message = salons.isEmpty() ? "No salons found near your location." : "Nearby salons fetched successfully.";
         return ResponseEntity.ok(
-                ApiResponseDto.<List<SalonDetailsDTO>>builder()
+                ApiResponseDTO.<List<SalonDetailsDTO>>builder()
                         .status(true)
                         .message(message)
                         .data(salons)
@@ -170,7 +169,7 @@ public class SalonSearchController {
                     content = @Content
             )
     })
-    public ResponseEntity<ApiResponseDto<List<SalonSearchWithSelectedServicesResponseDTO>>> searchSalonsByServices(
+    public ResponseEntity<ApiResponseDTO<List<SalonSearchWithSelectedServicesResponseDTO>>> searchSalonsByServices(
             @RequestParam double latitude,
             @RequestParam double longitude,
             @RequestParam double distance,
@@ -188,9 +187,9 @@ System.out.println(request);
                 );
 
         if (result.isEmpty())
-            return ResponseEntity.ok(new ApiResponseDto<>(true, "No salons found for the selected service.", List.of()));
+            return ResponseEntity.ok(new ApiResponseDTO<>(true, "No salons found for the selected service.", List.of()));
 
-        return ResponseEntity.ok(new ApiResponseDto<>(true, "Salons fetched successfully", result)
+        return ResponseEntity.ok(new ApiResponseDTO<>(true, "Salons fetched successfully", result)
         );
     }
 
@@ -247,7 +246,7 @@ System.out.println(request);
                         latitude, longitude, distance, unit, keyword);
 
         return ResponseEntity.ok(
-                ApiResponseDto.<List<SalonDetailsDTO>>builder()
+                ApiResponseDTO.<List<SalonDetailsDTO>>builder()
                         .status(true)
                         .message("Search results fetched successfully")
                         .data(salons)
@@ -311,7 +310,7 @@ System.out.println(request);
                 salonSearchService.getSalonsByName(salonName, latitude, longitude, unit);
 
         return ResponseEntity.ok(
-                ApiResponseDto.<List<SalonDetailsDTO>>builder()
+                ApiResponseDTO.<List<SalonDetailsDTO>>builder()
                         .status(true)
                         .message("Salons fetched successfully")
                         .data(salons)

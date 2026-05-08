@@ -1,4 +1,4 @@
-package org.backend.dto.user.request;
+package org.backend.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
@@ -18,7 +18,7 @@ import org.backend.validation.annotation.ValidName;
         name = "User Register Request",
         description = "Request payload used to register a new user in the system"
 )
-public class UserRegisterRequestDTO {
+public class UserRegisterRequest {
 
     @Schema(
             description = "User first name. Only alphabetic characters are allowed",

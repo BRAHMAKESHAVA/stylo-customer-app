@@ -2,6 +2,9 @@ package org.backend.service;
 
 import lombok.RequiredArgsConstructor;
 import org.backend.dto.*;
+import org.backend.dto.CreateSalonServiceRequest;
+import org.backend.dto.request.UpdateSalonServiceRequest;
+import org.backend.dto.response.SalonServiceResponse;
 import org.backend.exception.BadRequestException;
 import org.backend.exception.DuplicateResourceException;
 import org.backend.exception.ResourceNotFoundException;
@@ -74,7 +77,7 @@ public class SalonServices {
      * Creates a new service for a salon.
      */
     // CREATE SERVICE
-    public SalonServiceDTO createService(SalonServiceDTO request) {
+    public SalonServiceResponse createService(CreateSalonServiceRequest request) {
 
         salonRepository.findById(request.getSalonId())
                 .orElseThrow(() -> new ResourceNotFoundException("Salon not found"));
@@ -100,7 +103,7 @@ public class SalonServices {
         SalonService service = new SalonService();
         BeanUtils.copyProperties(request, service);
 
-        SalonServiceDTO dto = new SalonServiceDTO();
+        SalonServiceResponse dto = new SalonServiceResponse();
         BeanUtils.copyProperties(salonServiceRepository.save(service), dto);
 
         return dto;
@@ -110,7 +113,7 @@ public class SalonServices {
      * Updates an existing service.
      */
     // UPDATE SERVICE
-    public SalonServiceDTO updateService(Long serviceId, UpdateServiceRequest request) {
+    public SalonServiceResponse updateService(Long serviceId, UpdateSalonServiceRequest request) {
         if (request.getSalonId() == null) {
             throw new BadRequestException("Salon ID is required to update the service.");
         }
@@ -159,7 +162,7 @@ public class SalonServices {
             service.setIsActive(request.getIsActive());
         }
 
-        SalonServiceDTO dto = new SalonServiceDTO();
+        SalonServiceResponse dto = new SalonServiceResponse();
         BeanUtils.copyProperties(salonServiceRepository.save(service), dto);
 
         return dto;
@@ -196,36 +199,57 @@ public class SalonServices {
      * Fetches a single service by its ID.
      */
     // GET SERVICE BY ID
-    public SalonService getServiceById(Long serviceId) {
-        return salonServiceRepository.findById(serviceId)
-                .orElseThrow(() -> new ResourceNotFoundException("Service not found"));
+    public SalonServiceResponse getServiceById(Long serviceId) {
+        SalonService service = salonServiceRepository.findById(serviceId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Service not found")
+                );
+
+        SalonServiceResponse dto = new SalonServiceResponse();
+        BeanUtils.copyProperties(service, dto);
+
+        return dto;
     }
 
     /**
      * Fetches services for a given salon and category.
      */
     // GET SERVICES BY CATEGORY AND SALON
-    public List<SalonService> getServicesByCategoryAndSalon(Long salonId, Long categoryId) {
+    public List<SalonServiceResponse> getServicesByCategoryAndSalon(Long salonId, Long categoryId) {
         salonRepository.findById(salonId)
                 .orElseThrow(() -> new ResourceNotFoundException("Salon not found"));
 
         categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
-        return salonServiceRepository.findBySalonIdAndCategoryId(salonId, categoryId);
-    }
+        return salonServiceRepository
+                .findBySalonIdAndCategoryId(salonId, categoryId)
+                .stream()
+                .map(service -> {
+                    SalonServiceResponse dto = new SalonServiceResponse();
+                    BeanUtils.copyProperties(service, dto);
+
+                    return dto;
+                })
+                .toList();    }
 
     /**
      * Fetches paginated services for a given salon.
      */
     // GET SERVICES BY SALON PAGINATION
-    public Page<SalonService> getServicesBySalon(Long salonId, int pageNo, int pageSize) {
+    public Page<SalonServiceResponse> getServicesBySalon(Long salonId, int pageNo, int pageSize) {
         salonRepository.findById(salonId)
                 .orElseThrow(() -> new ResourceNotFoundException("Salon not found"));
 
         Pageable pageable = PageRequest.of(pageNo, pageSize);
 
-        return salonServiceRepository.findBySalonId(salonId, pageable);
+        Page<SalonService> services = salonServiceRepository.findBySalonId(salonId, pageable);
+
+        return services.map(service -> {
+            SalonServiceResponse dto = new SalonServiceResponse();
+            BeanUtils.copyProperties(service, dto);
+            return dto;
+        });
     }
 
     /**

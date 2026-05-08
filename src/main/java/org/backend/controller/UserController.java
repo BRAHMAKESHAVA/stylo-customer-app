@@ -3,23 +3,22 @@ package org.backend.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.backend.dto.common.PageResponse;
-import org.backend.dto.user.request.UserRegisterRequestDTO;
-import org.backend.dto.user.request.UserUpdateRequestDTO;
-import org.backend.dto.user.response.UserRegisterResponseDTO;
+import org.backend.dto.request.UserRegisterRequest;
+import org.backend.dto.request.UserUpdateRequest;
+import org.backend.dto.response.UserResponse;
 import org.backend.model.Customer;
 import org.backend.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.backend.dto.common.ApiResponseDto;
+import org.backend.dto.common.ApiResponseDTO;
 import java.util.List;
 
 /**
@@ -91,10 +90,10 @@ public class UserController {
                     content = @Content
             )
     })
-    ResponseEntity<ApiResponseDto<UserRegisterResponseDTO>> userRegister(@Valid @RequestBody UserRegisterRequestDTO registerUser) {
-       UserRegisterResponseDTO response = userService.userRegister(registerUser);
+    ResponseEntity<ApiResponseDTO<UserResponse>> userRegister(@Valid @RequestBody UserRegisterRequest registerUser) {
+       UserResponse response = userService.userRegister(registerUser);
         return ResponseEntity.status(HttpStatus.OK)
-                .body(ApiResponseDto.<UserRegisterResponseDTO>builder()
+                .body(ApiResponseDTO.<UserResponse>builder()
                         .status(true)
                         .message("User with mobile " + response.getMobile() + " has been successfully created!")
                         .data(response)
@@ -149,13 +148,13 @@ public class UserController {
                     content = @Content
             )
     })
-    public ResponseEntity<ApiResponseDto<UserRegisterResponseDTO>> updateUser(
+    public ResponseEntity<ApiResponseDTO<UserResponse>> updateUser(
             @Parameter(description = "Unique identifier of the user to update")
             @PathVariable Long userId,
-            @Valid @RequestBody UserUpdateRequestDTO updateRequestDTO) {
-        UserRegisterResponseDTO response = userService.updateUser(userId, updateRequestDTO);
+            @Valid @RequestBody UserUpdateRequest updateRequestDTO) {
+        UserResponse response = userService.updateUser(userId, updateRequestDTO);
         return ResponseEntity.ok(
-                ApiResponseDto.<UserRegisterResponseDTO>builder()
+                ApiResponseDTO.<UserResponse>builder()
                         .status(true)
                         .message("User updated successfully")
                         .data(response)
@@ -204,12 +203,12 @@ public class UserController {
                     content = @Content
             )
     })
-    public ResponseEntity<ApiResponseDto<UserRegisterResponseDTO>> getUserById(
+    public ResponseEntity<ApiResponseDTO<UserResponse>> getUserById(
             @Parameter(description = "Unique identifier of the user",example = "1")
             @PathVariable Long userId) {
-        UserRegisterResponseDTO response = userService.getUserById(userId);
+        UserResponse response = userService.getUserById(userId);
         return ResponseEntity.status(HttpStatus.OK)
-                .body(ApiResponseDto.<UserRegisterResponseDTO>builder()
+                .body(ApiResponseDTO.<UserResponse>builder()
                         .status(true)
                         .message("User with the give userId: " + userId + " has been fetched successfully!")
                         .data(response)
@@ -259,16 +258,16 @@ public class UserController {
                     content = @Content
             )
     })
-    public ResponseEntity<ApiResponseDto<PageResponse<UserRegisterResponseDTO>>> getAllUsers(
+    public ResponseEntity<ApiResponseDTO<PageResponse<UserResponse>>> getAllUsers(
             @Parameter(description = "Page number (1-indexed)")
             @RequestParam(defaultValue = "1") int page,
             @Parameter(description = "Number of items per page")
             @RequestParam(defaultValue = "20") int size
     ) {
-        PageResponse<UserRegisterResponseDTO> users = userService.getAllUsers(page, size);
+        PageResponse<UserResponse> users = userService.getAllUsers(page, size);
 
         return ResponseEntity.ok(
-                ApiResponseDto.<PageResponse<UserRegisterResponseDTO>>builder()
+                ApiResponseDTO.<PageResponse<UserResponse>>builder()
                         .status(true)
                         .message("All users fetched successfully")
                         .data(users)
@@ -320,12 +319,12 @@ public class UserController {
                     content = @Content
             )
     })
-    public ResponseEntity<ApiResponseDto<Customer>> getCustomerById(
+    public ResponseEntity<ApiResponseDTO<Customer>> getCustomerById(
             @Parameter(description = "Unique identifier of the customer")
             @PathVariable Long customerId) {
         Customer response = userService.getCustomerById(customerId);
         return ResponseEntity.status(HttpStatus.OK)
-                .body(ApiResponseDto.<Customer>builder()
+                .body(ApiResponseDTO.<Customer>builder()
                         .status(true)
                         .message("Customer fetched successfully")
                         .data(response)
@@ -370,15 +369,15 @@ public class UserController {
                     content = @Content
             )
     })
-    public ResponseEntity<ApiResponseDto<List<UserRegisterResponseDTO>>> getAllCustomers(
+    public ResponseEntity<ApiResponseDTO<List<UserResponse>>> getAllCustomers(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
 
-        List<UserRegisterResponseDTO> customers = userService.getAllCustomers(page, size);
+        List<UserResponse> customers = userService.getAllCustomers(page, size);
 
         return ResponseEntity.ok(
-                ApiResponseDto.<List<UserRegisterResponseDTO>>builder()
+                ApiResponseDTO.<List<UserResponse>>builder()
                         .status(true)
                         .message("All customers fetched successfully")
                         .data(customers)
