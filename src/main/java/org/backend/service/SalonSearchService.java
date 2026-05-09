@@ -318,17 +318,28 @@ public class SalonSearchService {
             String salonName,
             double latitude,
             double longitude,
+            double distance,
             String unit) {
 
         if (salonName == null || salonName.trim().isEmpty()) {
             throw new IllegalArgumentException("Salon name is required");
         }
 
+        double distanceKm = ("M".equalsIgnoreCase(unit)) ? distance / 1000.0 : distance;
+        double latDelta = distanceKm / 111.0;
+        double lonDelta = distanceKm / (111.0 * Math.cos(Math.toRadians(latitude)));
+        double minLat = latitude - latDelta;
+        double maxLat = latitude + latDelta;
+        double minLon = longitude - lonDelta;
+        double maxLon = longitude + lonDelta;
+
         List<NearBySalonsProjection> rows =
-                salonRepository.findSalonsByName(
-                        latitude,
-                        longitude,
-                        salonName.trim()
+                salonRepository.searchNearbySalons(
+                        latitude, longitude,
+                        minLat, maxLat,
+                        minLon, maxLon,
+                        distanceKm,
+                        salonName
                 );
 
         if (rows == null || rows.isEmpty()) {

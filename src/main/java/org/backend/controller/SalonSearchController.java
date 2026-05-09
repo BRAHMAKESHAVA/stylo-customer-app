@@ -299,11 +299,12 @@ System.out.println(request);
             @RequestParam String salonName,
             @RequestParam double latitude,
             @RequestParam double longitude,
+            @RequestParam double distance,
             @RequestParam(defaultValue = "KM") String unit
     ) {
 
         List<SalonDetailsDTO> salons =
-                salonSearchService.getSalonsByName(salonName, latitude, longitude, unit);
+                salonSearchService.getSalonsByName(salonName, latitude, longitude, distance,unit);
 
         return ResponseEntity.ok(
                 ApiResponseDTO.<List<SalonDetailsDTO>>builder()

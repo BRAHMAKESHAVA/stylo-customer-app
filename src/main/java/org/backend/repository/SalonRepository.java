@@ -142,10 +142,23 @@ public interface SalonRepository extends JpaRepository<SalonDetails, Long> {
     @Query(value = """
             SELECT *
             FROM (
-                SELECT 
-                    s.salon_id AS salonId,
-                    s.salon_name AS salonName,
-                    (6371 * acos(
+                  SELECT 
+                        s.salon_id AS salonId,
+                        s.partner_id AS partnerId,
+                        s.salon_name AS salonName,
+                        s.latitude AS latitude,
+                        s.longitude AS longitude,
+                        s.address_line1 AS addressLine1,
+                        s.address_line2 AS addressLine2,
+                        s.landmark AS landmark,
+                        s.city AS city,
+                        s.state AS state,
+                        s.zip_code AS zipCode,
+                        s.country AS country,
+                        s.working_days AS workingDays,
+                        s.working_hours_start AS workingHoursStart,
+                        s.working_hours_end AS workingHoursEnd,
+                        (6371 * acos(
                         cos(radians(:lat)) * cos(radians(s.latitude)) *
                         cos(radians(s.longitude) - radians(:lon)) +
                         sin(radians(:lat)) * sin(radians(s.latitude))

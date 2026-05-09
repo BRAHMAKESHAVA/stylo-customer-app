@@ -52,7 +52,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/auth/login/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/user/register").permitAll() //permitAll
+                        .requestMatchers(HttpMethod.POST, "/user/register").permitAll() //permitAll()authenticated
                         .requestMatchers(
                                 "/api/bookings/**",
                                 "/api/customer-address/**",

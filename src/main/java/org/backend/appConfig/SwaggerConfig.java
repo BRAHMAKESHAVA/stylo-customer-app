@@ -81,7 +81,7 @@ public class SwaggerConfig {
                         "• Salon service catalog management\n" +
                         "• Salon category organization\n" +
                         "• Salon resource management\n\n" +
-                        "All endpoints require valid JWT authentication except public endpoints (send OTP, verify OTP, userRegister).\n\n" +
+                        "All endpoints require valid JWT authentication except public endpoints (send OTP, verify OTP).\n\n" +
                         "API Response Format: All responses follow a standardized wrapper format with status, message, and data fields.")
                 .version("1.0.0");
                 //.contact(buildContactInfo())
