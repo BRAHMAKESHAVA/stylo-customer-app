@@ -90,5 +90,6 @@ public class CreateAddressRequest {
     private String labelName;
 
     @Schema(description = "Marks whether this address is default", example = "true", defaultValue = "false")
+    @Builder.Default
     private Boolean isDefault = false;
 }

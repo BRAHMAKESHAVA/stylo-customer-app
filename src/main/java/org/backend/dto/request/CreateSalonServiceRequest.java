@@ -48,5 +48,6 @@ public class CreateSalonServiceRequest {
     private BigDecimal price;
 
     @Schema(description = "Status of salon service", example = "true", defaultValue = "true")
+    @Builder.Default
     private Boolean isActive = true;
 }

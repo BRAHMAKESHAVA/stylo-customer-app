@@ -27,5 +27,6 @@ public class CreateServiceCategoryRequest {
     private String categoryName;
 
     @Schema(description = "Status of service category", example = "true", defaultValue = "true")
+    @Builder.Default
     private Boolean isActive = true;
 }

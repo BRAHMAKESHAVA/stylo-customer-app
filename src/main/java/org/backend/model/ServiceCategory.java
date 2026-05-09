@@ -35,5 +35,6 @@ public class ServiceCategory {
     private String categoryName;
 
     @Column(name = "is_active", nullable = false)
+    @Builder.Default
     private Boolean isActive = true; // default value
 }

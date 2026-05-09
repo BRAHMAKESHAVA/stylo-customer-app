@@ -1,6 +1,5 @@
 package org.backend.service;
 
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.backend.dto.common.PageResponse;
 import org.backend.dto.request.UserRegisterRequest;
@@ -15,7 +14,6 @@ import org.backend.model.Users;
 import org.backend.repository.CustomerRepository;
 import org.backend.repository.PartnerRepository;
 import org.backend.repository.UserRepository;
-import org.backend.utill.JwtUtill;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -38,9 +36,6 @@ public class UserService {
     private final CustomerRepository customerRepository;
     private final PasswordEncoder passwordEncoder;
     private final PartnerRepository partnerRepository;
-    private final JwtUtill jwtUtill;
-    private final HttpServletRequest httpRequest;
-    private final AuthService authService;
 
     /**
      * Registers a new user based on the provided registration details.
@@ -67,12 +62,8 @@ public class UserService {
         Users users = new Users();
         BeanUtils.copyProperties(registerUser, users);
 
-        if (registerUser.getPassword() != null &&
-                !registerUser.getPassword().isEmpty()) {
-
-            users.setPassword(
-                    passwordEncoder.encode(registerUser.getPassword())
-            );
+        if (registerUser.getPassword() != null && !registerUser.getPassword().isEmpty()) {
+            users.setPassword(passwordEncoder.encode(registerUser.getPassword()));
         }
 
         users.setAge(Integer.parseInt(registerUser.getAge()));
@@ -196,18 +187,12 @@ public class UserService {
      */
     // GET CUSTOMER BY ID
     public Customer getCustomerById(Long id) {
-        Customer customer = customerRepository.findById(id)
+        return customerRepository.findById(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Customer not found with id: " + id
                         )
                 );
-
-        //Users user = customer.getUsers();
-        //UserRegisterResponseDTO response = new UserRegisterResponseDTO();
-        //BeanUtils.copyProperties(user, response);
-
-        return customer;
     }
 
     //fetch all customers
@@ -219,7 +204,7 @@ public class UserService {
     // GET ALL CUSTOMERS
     public List<UserResponse> getAllCustomers(int page, int size) {
 
-        // 🔥 Business validation
+        // Business validation
         validatePagination(page, size);
 
         Pageable pageable = PageRequest.of(page - 1, size);

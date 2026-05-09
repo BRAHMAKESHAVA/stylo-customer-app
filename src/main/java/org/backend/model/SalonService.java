@@ -50,5 +50,6 @@ public class SalonService {
     private BigDecimal price;
 
     @Column(name = "is_active", nullable = false)
+    @Builder.Default
     private Boolean isActive = true; // default
 }

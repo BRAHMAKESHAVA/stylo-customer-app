@@ -94,6 +94,7 @@ public class Address {
     private String labelName;
 
     @Column(name = "is_default")
+    @Builder.Default
     private Boolean isDefault = false;
 
     @Column(name = "created_at", updatable = false)

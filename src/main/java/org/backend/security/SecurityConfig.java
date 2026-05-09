@@ -18,8 +18,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 @Configuration
@@ -27,7 +25,6 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
-    private final HandlerExceptionResolver handlerExceptionResolver;
     private final CustomeAccessDenaidHandler customeAccessDenaidHandler;
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
@@ -54,9 +51,9 @@ public class SecurityConfig {
                 .sessionManagement(sessionConfig -> sessionConfig
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/user/register").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/auth/login/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/user/register").permitAll() //permitAll
                         .requestMatchers(
                                 "/api/bookings/**",
                                 "/api/customer-address/**",
