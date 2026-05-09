@@ -67,7 +67,6 @@ twilio:
   whatsapp:
     sandbox: ${TWILIO_WHATSAPP_SANDBOX}
 
-
 address:
   max:
     count: ${ADDRESS_MAX_COUNT:5}

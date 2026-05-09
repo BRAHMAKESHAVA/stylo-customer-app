@@ -231,7 +231,7 @@ System.out.println(request);
                     content = @Content
             )
     })
-    public ResponseEntity<?> searchNearbySalons(
+    public ResponseEntity<?> searchNearbySalonSuggestions(
             @RequestParam double latitude,
             @RequestParam double longitude,
             @RequestParam double distance,
@@ -239,8 +239,7 @@ System.out.println(request);
             @RequestParam(defaultValue = "KM") String unit
     ) {
         List<SalonDetailsDTO> salons =
-                salonSearchService.searchNearbySalons(
-                        latitude, longitude, distance, unit, keyword);
+                salonSearchService.searchNearbySalonSuggestions(latitude, longitude, distance, unit, keyword);
 
         return ResponseEntity.ok(
                 ApiResponseDTO.<List<SalonDetailsDTO>>builder()
@@ -295,7 +294,7 @@ System.out.println(request);
                     content = @Content
             )
     })
-    public ResponseEntity<?> getSalonsByName(
+    public ResponseEntity<?> getNearbySalonByName(
             @RequestParam String salonName,
             @RequestParam double latitude,
             @RequestParam double longitude,
@@ -304,7 +303,7 @@ System.out.println(request);
     ) {
 
         List<SalonDetailsDTO> salons =
-                salonSearchService.getSalonsByName(salonName, latitude, longitude, distance,unit);
+                salonSearchService.getNearbySalonByName(salonName, latitude, longitude, distance,unit);
 
         return ResponseEntity.ok(
                 ApiResponseDTO.<List<SalonDetailsDTO>>builder()

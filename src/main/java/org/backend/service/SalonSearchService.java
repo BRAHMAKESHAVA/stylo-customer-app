@@ -42,18 +42,10 @@ public class SalonSearchService {
      */
     // FIND NEARBY SALONS
     public List<SalonDetailsDTO> findNearbySalons(double latitude, double longitude, double distance, String unit) {
-        double distanceKm = ("M".equalsIgnoreCase(unit)) ? distance / 1000.0 : distance;
-        double latDelta = distanceKm / 111.0;
-        double lonDelta = distanceKm / (111.0 * Math.cos(Math.toRadians(latitude)));
-        double minLat = latitude - latDelta;
-        double maxLat = latitude + latDelta;
-        double minLon = longitude - lonDelta;
-        double maxLon = longitude + lonDelta;
 
-        List<NearBySalonsProjection> rows = salonRepository
-                .findNearbySalons(latitude, longitude, minLat, maxLat, minLon, maxLon, distanceKm);
+        List<NearBySalonsProjection> nearbySalons = fetchNearbySalons(latitude, longitude, distance, unit, null);
 
-        List<SalonDetailsDTO> salons = rows.stream().map(p -> {
+        List<SalonDetailsDTO> salons = nearbySalons.stream().map(p -> {
             double finalDistance = ("M".equalsIgnoreCase(unit))
                     ? p.getDistanceKm() * 1000
                     : p.getDistanceKm();
@@ -212,8 +204,7 @@ public class SalonSearchService {
             throw new BadRequestException("At least one valid service must be selected.");
         }
 
-        List<SalonDetailsDTO> nearbySalons =
-                findNearbySalons(latitude, longitude, distance, unit);
+        List<SalonDetailsDTO> nearbySalons = findNearbySalons(latitude, longitude, distance, unit);
 
         if (nearbySalons.isEmpty())
             return List.of();
@@ -222,8 +213,7 @@ public class SalonSearchService {
                 .map(SalonDetailsDTO::getSalonId)
                 .toList();
 
-        List<SalonService> services =
-                salonServiceRepository.findBySalonIds(salonIds);
+        List<SalonService> services = salonServiceRepository.findBySalonIds(salonIds);
 
         Set<String> requiredServices = selectedServices.stream()
                 .map(s -> s.toLowerCase().trim())
@@ -269,35 +259,20 @@ public class SalonSearchService {
                 .toList();
     }
 
-    // SEARCH NEARBY SALONS
-    public List<SalonDetailsDTO> searchNearbySalons(
+    // Search nearby salons by search keyword it will give suggestions of salon name which are nearby to user location
+    public List<SalonDetailsDTO> searchNearbySalonSuggestions(
             double latitude,
             double longitude,
             double distance,
             String unit,
             String keyword) {
 
-        String cleanKeyword = (keyword == null) ? "" : keyword.trim();
+        if (keyword == null || keyword.trim().isEmpty()) {
+            throw new BadRequestException("Salon name is required");
+        }
 
-        if (cleanKeyword.isEmpty())
-            return Collections.emptyList();
-
-        double distanceKm = ("M".equalsIgnoreCase(unit)) ? distance / 1000.0 : distance;
-        double latDelta = distanceKm / 111.0;
-        double lonDelta = distanceKm / (111.0 * Math.cos(Math.toRadians(latitude)));
-        double minLat = latitude - latDelta;
-        double maxLat = latitude + latDelta;
-        double minLon = longitude - lonDelta;
-        double maxLon = longitude + lonDelta;
-
-        List<NearBySalonsProjection> rows =
-                salonRepository.searchNearbySalons(
-                        latitude, longitude,
-                        minLat, maxLat,
-                        minLon, maxLon,
-                        distanceKm,
-                        cleanKeyword
-                );
+        List<NearBySalonsProjection> rows = fetchNearbySalons(
+                latitude, longitude, distance, unit, keyword.trim());
 
         Map<String, NearBySalonsProjection> uniqueMap = new LinkedHashMap<>();
 
@@ -313,34 +288,17 @@ public class SalonSearchService {
                 .toList();
     }
 
-    // GET SALONS BY NAME
-    public List<SalonDetailsDTO> getSalonsByName(
-            String salonName,
-            double latitude,
-            double longitude,
-            double distance,
-            String unit) {
+    // Get salon by name which is selected from suggestions and also nearby to user location
+    public List<SalonDetailsDTO> getNearbySalonByName(
+            String salonName, double latitude,
+            double longitude, double distance, String unit) {
 
         if (salonName == null || salonName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Salon name is required");
+            throw new BadRequestException("Salon name is required");
         }
 
-        double distanceKm = ("M".equalsIgnoreCase(unit)) ? distance / 1000.0 : distance;
-        double latDelta = distanceKm / 111.0;
-        double lonDelta = distanceKm / (111.0 * Math.cos(Math.toRadians(latitude)));
-        double minLat = latitude - latDelta;
-        double maxLat = latitude + latDelta;
-        double minLon = longitude - lonDelta;
-        double maxLon = longitude + lonDelta;
-
-        List<NearBySalonsProjection> rows =
-                salonRepository.searchNearbySalons(
-                        latitude, longitude,
-                        minLat, maxLat,
-                        minLon, maxLon,
-                        distanceKm,
-                        salonName
-                );
+        List<NearBySalonsProjection> rows = fetchNearbySalons(
+                latitude, longitude, distance, unit, salonName.trim());
 
         if (rows == null || rows.isEmpty()) {
             throw new ResourceNotFoundException("Salon not found");
@@ -376,5 +334,32 @@ public class SalonSearchService {
 
             return dto;
         }).toList();
+    }
+
+
+    private List<NearBySalonsProjection> fetchNearbySalons(
+            double latitude, double longitude,
+            double distance, String unit, String keyword) {
+
+        double distanceKm = ("M".equalsIgnoreCase(unit)) ? distance / 1000.0 : distance;
+        double latDelta = distanceKm / 111.0;
+        double lonDelta = distanceKm / (111.0 * Math.cos(Math.toRadians(latitude)));
+
+        double minLat = latitude - latDelta;
+        double maxLat = latitude + latDelta;
+
+        double minLon = longitude - lonDelta;
+        double maxLon = longitude + lonDelta;
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+
+            return salonRepository.searchNearbySalons(
+                    latitude, longitude,
+                    minLat, maxLat, minLon, maxLon, distanceKm, keyword.trim());
+        }
+
+        return salonRepository.findNearbySalons(
+                latitude, longitude,
+                minLat, maxLat, minLon, maxLon, distanceKm);
     }
 }
