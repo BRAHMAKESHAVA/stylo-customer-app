@@ -10,8 +10,7 @@ spring:
   #  profiles:
   #    active: test
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/my_database}
-#    url: jdbc:mysql://localhost:3306/my_database?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/user_management_db}
     username: ${DB_USERNAME:testing}
     password: ${DB_PASSWORD:1234567890}
     hikari:
@@ -29,9 +28,10 @@ spring:
       hibernate:
         format_sql: true
 
-  redis:
-    host: ${REDIS_HOST:localhost}
-    port: ${REDIS_PORT:6379}
+  data:
+    redis: # ✅ Correct for Spring Boot 3+/4+
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 
   mvc:
     throw-exception-if-no-handler-found: true
@@ -66,6 +66,7 @@ twilio:
     from: ${TWILIO_SMS_FROM}
   whatsapp:
     sandbox: ${TWILIO_WHATSAPP_SANDBOX}
+
 
 address:
   max:

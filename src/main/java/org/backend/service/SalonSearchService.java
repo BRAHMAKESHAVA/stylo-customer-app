@@ -329,8 +329,12 @@ public class SalonSearchService {
                     .unit(unit == null ? "KM" : unit.toUpperCase())
                     .build();
 
-            salonImageRepository.findFrontViewImage(p.getSalonId())
-                    .ifPresent(img -> dto.setSalonImage(img.getImageUrl()));
+//            salonImageRepository.findFrontViewImage(p.getSalonId())
+//                    .ifPresent(img -> dto.setSalonImage(img.getImageUrl()));
+
+            List<SalonImages> imgs = salonImageRepository.findImagesForSalon(p.getSalonId());
+            if (!imgs.isEmpty()) {
+                dto.setSalonImage(imgs.get(0).getImageUrl());}
 
             return dto;
         }).toList();
