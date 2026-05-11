@@ -9,6 +9,7 @@ import lombok.*;
 import org.backend.enums.AddressType;
 import org.backend.validation.annotation.ValidLatitude;
 import org.backend.validation.annotation.ValidLongitude;
+import org.backend.validation.annotation.ValidPinCode;
 
 import java.math.BigDecimal;
 
@@ -67,15 +68,16 @@ public class CreateAddressRequest {
 
     @Schema(description = "6-digit postal PIN code", example = "560035", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Pin code is required")
-    @Pattern(regexp = "^[1-9][0-9]{5}$", message = "Invalid PIN code. It must be a valid 6-digit number")
-    @Size(max = 10, message = "Pin code cannot exceed 10 characters")
+    //@Pattern(regexp = "^[1-9][0-9]{5}$", message = "Invalid PIN code. It must be a valid 6-digit number")
+    //@Size(max = 6, message = "Pin code cannot exceed 6 characters")
+    @ValidPinCode
     private String pinCode;
 
-    @Schema(description = "Latitude coordinate", example = "12.912345")
+    @Schema(description = "Latitude coordinate", example = "12.912345", requiredMode = Schema.RequiredMode.REQUIRED)
     @ValidLatitude
     private BigDecimal latitude;
 
-    @Schema(description = "Longitude coordinate", example = "77.684567")
+    @Schema(description = "Longitude coordinate", example = "77.684567", requiredMode = Schema.RequiredMode.REQUIRED)
     @ValidLongitude
     private BigDecimal longitude;
 
