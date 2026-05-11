@@ -58,6 +58,7 @@ public class OtpService {
     // GENERATE OTP
     public SendOtpResponse generateOtp(SendOtpRequest request) {
         String mobile = request.getMobile();
+        log.info("Received OTP generation request for mobile: {}", mobile);
         Role role = request.getRole();
 
         //        if (!userRepository.existsByMobile(mobile)) {
