@@ -263,16 +263,17 @@ public class SalonSearchService {
     public List<SalonDetailsDTO> searchNearbySalonSuggestions(
             double latitude,
             double longitude,
-            double distance,
-            String unit,
+            //double distance,
+            //String unit,
             String keyword) {
 
         if (keyword == null || keyword.trim().isEmpty()) {
             throw new BadRequestException("Salon name is required");
         }
 
-        List<NearBySalonsProjection> rows = fetchNearbySalons(
-                latitude, longitude, distance, unit, keyword.trim());
+        //List<NearBySalonsProjection> rows = fetchNearbySalons(latitude, longitude, distance, unit, keyword.trim());
+
+        List<NearBySalonsProjection> rows = salonRepository.searchSalonsByKeyword(latitude, longitude, keyword.trim());
 
         Map<String, NearBySalonsProjection> uniqueMap = new LinkedHashMap<>();
 
@@ -290,19 +291,22 @@ public class SalonSearchService {
 
     // Get salon by name which is selected from suggestions and also nearby to user location
     public List<SalonDetailsDTO> getNearbySalonByName(
-            String salonName, double latitude,
-            double longitude, double distance, String unit) {
+            String salonName, double latitude, double longitude) {
 
         if (salonName == null || salonName.trim().isEmpty()) {
             throw new BadRequestException("Salon name is required");
         }
 
-        List<NearBySalonsProjection> rows = fetchNearbySalons(
-                latitude, longitude, distance, unit, salonName.trim());
+        //List<NearBySalonsProjection> rows = fetchNearbySalons(latitude, longitude, distance, unit, salonName.trim());
+
+        List<NearBySalonsProjection> rows = salonRepository.searchSalonsByKeyword(latitude, longitude, salonName.trim());
+
 
         if (rows == null || rows.isEmpty()) {
             throw new ResourceNotFoundException("Salon not found");
         }
+
+        String unit = "KM"; // Default unit
 
         return rows.stream().map(p -> {
             double finalDistance = ("M".equalsIgnoreCase(unit))
@@ -365,5 +369,97 @@ public class SalonSearchService {
         return salonRepository.findNearbySalons(
                 latitude, longitude,
                 minLat, maxLat, minLon, maxLon, distanceKm);
+    }
+
+
+    public List<SalonDetailsDTO> getPopularSalons(
+            double latitude,
+            double longitude,
+            double distance,
+            String unit,
+            Integer size
+    ) {
+
+        int finalSize = (size == null) ? 20 : size;
+
+        if (finalSize < 1 || finalSize > 20) {
+            throw new BadRequestException("Size must be between 1 and 20");
+        }
+
+        String normalizedUnit = (unit == null || unit.isBlank())
+                ? "KM"
+                : unit.trim().toUpperCase();
+
+        double distanceKm = normalizedUnit.equals("M")
+                ? distance / 1000.0
+                : distance;
+
+        double latDelta = distanceKm / 111.0;
+        double lonDelta = distanceKm /
+                (111.0 * Math.cos(Math.toRadians(latitude)));
+
+        double minLat = latitude - latDelta;
+        double maxLat = latitude + latDelta;
+        double minLon = longitude - lonDelta;
+        double maxLon = longitude + lonDelta;
+
+        List<NearBySalonsProjection> results =
+                salonRepository.findPopularSalons(
+                        latitude, longitude, minLat, maxLat,
+                        minLon, maxLon, distanceKm, finalSize
+                );
+
+        if (results.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<SalonDetailsDTO> salons = results.stream()
+                .map(projection -> {
+
+                    double finalDistance = normalizedUnit.equals("M")
+                            ? projection.getDistanceKm() * 1000
+                            : projection.getDistanceKm();
+
+                    return SalonDetailsDTO.builder()
+                            .salonId(projection.getSalonId())
+                            .partnerId(projection.getPartnerId())
+                            .salonName(projection.getSalonName())
+                            .latitude(projection.getLatitude())
+                            .longitude(projection.getLongitude())
+                            .addressLine1(projection.getAddressLine1())
+                            .addressLine2(projection.getAddressLine2())
+                            .landmark(projection.getLandmark())
+                            .city(projection.getCity())
+                            .state(projection.getState())
+                            .zipCode(projection.getZipCode())
+                            .country(projection.getCountry())
+                            .workingDays(projection.getWorkingDays())
+                            .workingHoursStart(projection.getWorkingHoursStart())
+                            .workingHoursEnd(projection.getWorkingHoursEnd())
+                            .distance(Math.round(finalDistance * 100.0) / 100.0)
+                            .unit(normalizedUnit)
+                            .build();
+                })
+                .toList();
+
+        List<Long> salonIds = salons.stream()
+                .map(SalonDetailsDTO::getSalonId)
+                .toList();
+
+        List<SalonImages> images =
+                salonImageRepository.findFrontViewImages(salonIds);
+
+        Map<Long, String> imageMap = images.stream()
+                .collect(Collectors.toMap(
+                        SalonImages::getSalonId,
+                        SalonImages::getImageUrl,
+                        (existing, duplicate) -> existing
+                ));
+
+        salons.forEach(salon ->
+                salon.setSalonImage(imageMap.get(salon.getSalonId()))
+        );
+
+        return salons;
     }
 }
