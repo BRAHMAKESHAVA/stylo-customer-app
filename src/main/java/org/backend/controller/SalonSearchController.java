@@ -234,12 +234,11 @@ System.out.println(request);
     public ResponseEntity<?> searchNearbySalonSuggestions(
             @RequestParam double latitude,
             @RequestParam double longitude,
-            @RequestParam double distance,
-            @RequestParam String keyword,
-            @RequestParam(defaultValue = "KM") String unit
+            //@RequestParam double distance,
+            @RequestParam String keyword
+            //@RequestParam(defaultValue = "KM") String unit
     ) {
-        List<SalonDetailsDTO> salons =
-                salonSearchService.searchNearbySalonSuggestions(latitude, longitude, distance, unit, keyword);
+        List<SalonDetailsDTO> salons = salonSearchService.searchNearbySalonSuggestions(latitude, longitude, keyword);
 
         return ResponseEntity.ok(
                 ApiResponseDTO.<List<SalonDetailsDTO>>builder()
@@ -297,19 +296,44 @@ System.out.println(request);
     public ResponseEntity<?> getNearbySalonByName(
             @RequestParam String salonName,
             @RequestParam double latitude,
-            @RequestParam double longitude,
-            @RequestParam double distance,
-            @RequestParam(defaultValue = "KM") String unit
+            @RequestParam double longitude
+            //@RequestParam double distance,
+            //@RequestParam(defaultValue = "KM") String unit
     ) {
 
-        List<SalonDetailsDTO> salons =
-                salonSearchService.getNearbySalonByName(salonName, latitude, longitude, distance,unit);
+        //List<SalonDetailsDTO> salons = salonSearchService.getNearbySalonByName(salonName, latitude, longitude, distance,unit);
+
+        List<SalonDetailsDTO> salons = salonSearchService.getNearbySalonByName(salonName, latitude, longitude);
 
         return ResponseEntity.ok(
                 ApiResponseDTO.<List<SalonDetailsDTO>>builder()
                         .status(true)
                         .message("Salons fetched successfully")
                         .data(salons)
+                        .build()
+        );
+    }
+
+    @GetMapping("/salons/popular")
+    public ResponseEntity<?> getPopularSalons(
+            @RequestParam double latitude,
+            @RequestParam double longitude,
+            @RequestParam double distance,
+            @RequestParam(defaultValue = "KM") String unit,
+            @RequestParam(defaultValue = "20") Integer size
+    ) {
+
+        List<SalonDetailsDTO> popularSalons =
+                salonSearchService.getPopularSalons(
+                        latitude, longitude,
+                        distance, unit, size
+                );
+
+        return ResponseEntity.ok(
+                ApiResponseDTO.<List<SalonDetailsDTO>>builder()
+                        .status(true)
+                        .message("Popular salons fetched successfully.")
+                        .data(popularSalons)
                         .build()
         );
     }
