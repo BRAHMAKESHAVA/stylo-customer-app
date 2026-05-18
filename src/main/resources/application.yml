@@ -67,6 +67,11 @@ twilio:
   whatsapp:
     sandbox: ${TWILIO_WHATSAPP_SANDBOX}
 
+otp:
+  expiry-minutes: ${OTP_EXPIRY_MINUTES:2}
+  max-attempts: ${OTP_MAX_ATTEMPTS:3}
+  lock-duration-minutes: ${OTP_LOCK_DURATION_MINUTES:10}
+
 address:
   max:
     count: ${ADDRESS_MAX_COUNT:5}
