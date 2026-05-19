@@ -164,9 +164,7 @@ public interface SalonRepository extends JpaRepository<SalonDetails, Long> {
                         sin(radians(:lat)) * sin(radians(s.latitude))
                     )) AS distanceKm
                 FROM salon s
-                WHERE s.latitude BETWEEN :minLat AND :maxLat
-                  AND s.longitude BETWEEN :minLon AND :maxLon
-                  AND LOWER(s.salon_name) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                WHERE LOWER(s.salon_name) LIKE LOWER(CONCAT('%', :keyword, '%'))
             ) AS nearby
             WHERE nearby.distanceKm <= :distanceKm
             ORDER BY nearby.distanceKm ASC
@@ -175,11 +173,6 @@ public interface SalonRepository extends JpaRepository<SalonDetails, Long> {
     List<NearBySalonsProjection> searchNearbySalons(
             double lat,
             double lon,
-            double minLat,
-            double maxLat,
-            double minLon,
-            double maxLon,
-            double distanceKm,
             String keyword
     );
 
@@ -209,14 +202,15 @@ public interface SalonRepository extends JpaRepository<SalonDetails, Long> {
                     sin(radians(:lat)) * sin(radians(s.latitude))
                 )) AS distanceKm
             FROM salon s
-            WHERE LOWER(s.salon_name) = LOWER(:salonName)
+             WHERE LOWER(s.salon_name) LIKE LOWER(CONCAT('%', :keyword, '%'))
         ) AS nearby
         ORDER BY nearby.distanceKm ASC
+        LIMIT 10
         """, nativeQuery = true)
     List<NearBySalonsProjection> searchSalonsByKeyword(
             double lat,
             double lon,
-            String salonName
+            String keyword
     );
 
 
@@ -247,7 +241,6 @@ public interface SalonRepository extends JpaRepository<SalonDetails, Long> {
                 FROM salon s
                 WHERE s.latitude BETWEEN :minLat AND :maxLat
                   AND s.longitude BETWEEN :minLon AND :maxLon
-                  AND s.status = 'ACTIVE'
             ) AS nearby
             WHERE nearby.distanceKm <= :distanceKm
             ORDER BY nearby.distanceKm ASC

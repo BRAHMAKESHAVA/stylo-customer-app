@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -44,32 +45,77 @@ public class SecurityConfig {
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
+
         httpSecurity
-                .csrf(csrfConfig -> csrfConfig.disable())
-                .cors(corsConfig -> corsConfig.configurationSource(corsConfigurationSource()))
-                .sessionManagement(sessionConfig -> sessionConfig
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // Disable CSRF for stateless JWT authentication
+                .csrf(AbstractHttpConfigurer::disable)
+
+                // Configure CORS
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
+                // Stateless session management for JWT
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+
+                // Authorization rules
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers("/auth/login/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/user/register").permitAll() //permitAll()authenticated
+
+                        // Public endpoints
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/auth/login/**"
+                        ).permitAll()
+
+                        .requestMatchers(HttpMethod.POST, "/user/register").permitAll()
+
+                        // Customer-related protected endpoints
                         .requestMatchers(
                                 "/api/bookings/**",
                                 "/api/customer-address/**",
                                 "/api/payments/**",
                                 "/api/search/**",
-                                "/user/**",
-                                "/api/services/**"
-                        ).hasAnyRole("CUSTOMER","ADMIN","CAPTAIN","PARTNER")
-                        .requestMatchers("/api/service-categories/**","/api/salon-resources/**")
-                        .hasAnyRole("ADMIN","PARTNER")
-                        .anyRequest().authenticated() //authenticated()permitAll()denyAll
+                                "/user/**"
+                        ).hasAnyRole(
+                                "CUSTOMER",
+                                "ADMIN",
+                                "CAPTAIN",
+                                "PARTNER"
+                        )
+
+                        // Services APIs: GET for all authenticated users
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/services/**",
+                                "/api/service-categories/**",
+                                "/api/salon-resources/**"
+                        ).authenticated()
+
+                        // Services APIs: Full access for PARTNER and ADMIN
+                        .requestMatchers(
+                                "/api/services/**",
+                                "/api/service-categories/**",
+                                "/api/salon-resources/**"
+                        ).hasAnyRole("PARTNER", "ADMIN")
+
+                        // All remaining endpoints require authentication
+                        .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+
+                // JWT filter
+                .addFilterBefore(
+                        jwtAuthFilter,
+                        UsernamePasswordAuthenticationFilter.class
+                )
+
+                // Exception handling
                 .exceptionHandling(exception -> exception
                         .accessDeniedHandler(customeAccessDenaidHandler)
                         .authenticationEntryPoint(customAuthenticationEntryPoint)
                 );
+
         return httpSecurity.build();
     }
 

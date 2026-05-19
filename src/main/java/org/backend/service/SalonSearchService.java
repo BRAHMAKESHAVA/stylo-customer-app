@@ -271,7 +271,7 @@ public class SalonSearchService {
             throw new BadRequestException("Salon name is required");
         }
 
-        //List<NearBySalonsProjection> rows = fetchNearbySalons(latitude, longitude, distance, unit, keyword.trim());
+        //List<NearBySalonsProjection> rows = fetchNearbySalons(latitude, longitude, 0, "KM", keyword.trim());
 
         List<NearBySalonsProjection> rows = salonRepository.searchSalonsByKeyword(latitude, longitude, keyword.trim());
 
@@ -297,7 +297,7 @@ public class SalonSearchService {
             throw new BadRequestException("Salon name is required");
         }
 
-        //List<NearBySalonsProjection> rows = fetchNearbySalons(latitude, longitude, distance, unit, salonName.trim());
+        //List<NearBySalonsProjection> rows = fetchNearbySalons(latitude, longitude, 0, "KM", salonName.trim());
 
         List<NearBySalonsProjection> rows = salonRepository.searchSalonsByKeyword(latitude, longitude, salonName.trim());
 
@@ -359,11 +359,9 @@ public class SalonSearchService {
         double minLon = longitude - lonDelta;
         double maxLon = longitude + lonDelta;
 
-        if (keyword != null && !keyword.trim().isEmpty()) {
-
+        if (keyword != null && !keyword.trim().isEmpty()){
             return salonRepository.searchNearbySalons(
-                    latitude, longitude,
-                    minLat, maxLat, minLon, maxLon, distanceKm, keyword.trim());
+                    latitude, longitude, keyword.trim());
         }
 
         return salonRepository.findNearbySalons(

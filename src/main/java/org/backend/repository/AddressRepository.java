@@ -1,5 +1,6 @@
 package org.backend.repository;
 
+import org.backend.enums.AddressType;
 import org.backend.model.Address;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -16,45 +17,30 @@ import java.util.Optional;
 @Repository
 public interface AddressRepository extends JpaRepository<Address, Long> {
 
-    /**
-     * Finds an address by its ID and the associated customer ID.
-     *
-     * @param addressId the ID of the address
-     * @param customerId the ID of the customer
-     * @return an Optional containing the address if found
-     */
     Optional<Address> findByAddressIdAndCustomerId(Long addressId, Long customerId);
 
-    /**
-     * Finds all addresses for a specific customer.
-     *
-     * @param customerId the ID of the customer
-     * @return a list of addresses for the customer
-     */
-    List<Address> findByCustomerId(Long customerId);
+    List<Address> findByCustomerIdOrderByUpdatedAtDesc(Long customerId);
 
-    /**
-     * Resets the default flag for all addresses of a customer.
-     *
-     * @param customerId the ID of the customer
-     */
-    @Modifying @Query("UPDATE Address a SET a.isDefault = false WHERE a.customerId = :customerId AND a.isDefault = true")
+    @Modifying
+    @Query("UPDATE Address a SET a.isDefault = false WHERE a.customerId = :customerId AND a.isDefault = true")
     void resetDefaultForCustomer(Long customerId);
 
-    /**
-     * Resets the default flag for all addresses of a customer except the specified address.
-     *
-     * @param customerId the ID of the customer
-     * @param addressId the ID of the address to exclude
-     */
+    @Modifying
+    @Query("UPDATE Address a SET a.isSelected = false WHERE a.customerId = :customerId AND a.isSelected = true")
+    void resetSelectedForCustomer(Long customerId);
+
     @Modifying @Query("UPDATE Address a SET a.isDefault = false WHERE a.customerId = :customerId AND a.addressId <> :addressId")
     void resetDefaultForCustomer(Long customerId, Long addressId);
 
-    /**
-     * Counts the number of addresses for a specific customer.
-     *
-     * @param customerId the ID of the customer
-     * @return the count of addresses
-     */
+    @Modifying
+    @Query("UPDATE Address a SET a.isSelected = false WHERE a.customerId = :customerId AND a.addressId <> :addressId")
+    void resetSelectedForCustomer(Long customerId, Long addressId);
+
     long countByCustomerId(Long customerId);
+
+    // Check if HOME/WORK address already exists for create
+    boolean existsByCustomerIdAndAddressType(Long customerId, AddressType addressType);
+
+    // Check if HOME/WORK exists excluding current address during update
+    boolean existsByCustomerIdAndAddressTypeAndAddressIdNot(Long customerId, AddressType addressType, Long addressId);
 }

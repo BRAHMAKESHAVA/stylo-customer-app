@@ -14,6 +14,7 @@ import org.backend.model.Users;
 import org.backend.repository.CustomerRepository;
 import org.backend.repository.UserRepository;
 import org.backend.utill.JwtUtill;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -30,11 +31,19 @@ import java.time.Duration;
 @RequiredArgsConstructor
 @Slf4j
 public class OtpService {
+    @Value("${otp.expiry-minutes}")
+    private int OTP_EXPIRY_MINUTES;
 
-    private static final int OTP_EXPIRY_MINUTES = 3;
+    @Value("${otp.max-attempts}")
+    private int MAX_ATTEMPTS;
+
+    @Value("${otp.lock-duration-minutes}")
+    private int OTP_LOCK_DURATION_MINUTES;
+
+    //private static final int OTP_EXPIRY_MINUTES = 2;
     //private static final int OTP_EXPIRY_SECONDS = 30;
-    private static final int MAX_ATTEMPTS = 3;
-    private static final int OTP_LOCK_DURATION_MINUTES = 10;
+    //private static final int MAX_ATTEMPTS = 3;
+    //private static final int OTP_LOCK_DURATION_MINUTES = 10;
 
     private final StringRedisTemplate redisTemplate;
     private final UserRepository userRepository;
