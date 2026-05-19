@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.backend.dto.request.CreateAddressRequest;
 import org.backend.dto.request.UpdateAddressRequest;
 import org.backend.dto.response.AddressResponse;
+import org.backend.enums.AddressType;
 import org.backend.exception.BadRequestException;
 import org.backend.exception.ResourceNotFoundException;
 import org.backend.model.Address;
@@ -56,18 +57,29 @@ public class AddressService {
         if (count >= maxAddressCount)
             throw new BadRequestException("Maximum " + maxAddressCount + " addresses allowed per customer");
 
+        // Validate country code
         validateCountryCode(address.getCountryCode());
 
+        // Validate only one HOME and one WORK before creating
+        validateUniqueAddressType(customerId, address.getAddressType(), null);
+
+        // Handle if it is null in the request - default to false
         if (address.getIsDefault() == null)
             address.setIsDefault(false);
 
-        if (address.getIsDefault())
-            addressRepository.resetDefaultForCustomer(customerId);
-
-        address.setCustomerId(customerId);
+        // Handle if it is null in the request - default to true
+        if (address.getIsSelected() == null)
+            address.setIsSelected(true);
 
         Address newAddress = new Address();
+        newAddress.setCustomerId(customerId);
         BeanUtils.copyProperties(address, newAddress);
+
+        if (newAddress.getIsDefault())
+            addressRepository.resetDefaultForCustomer(customerId);
+
+        if (newAddress.getIsSelected())
+            addressRepository.resetDefaultForCustomer(customerId);
 
         AddressResponse addressDTO = new AddressResponse();
         BeanUtils.copyProperties(addressRepository.save(newAddress), addressDTO);
@@ -131,8 +143,11 @@ public class AddressService {
         if (dto.getLongitude() != null)
             existingAddress.setLongitude(dto.getLongitude());
 
-        if (dto.getAddressType() != null)
+        if (dto.getAddressType() != null) {
+            // Validate only one HOME and one WORK excluding current address
+            validateUniqueAddressType(customerId, dto.getAddressType(), addressId);
             existingAddress.setAddressType(dto.getAddressType());
+        }
 
         if (dto.getLabelName() != null)
             existingAddress.setLabelName(dto.getLabelName());
@@ -140,6 +155,11 @@ public class AddressService {
         if (dto.getIsDefault() != null && dto.getIsDefault()) {
             addressRepository.resetDefaultForCustomer(customerId, addressId);
             existingAddress.setIsDefault(dto.getIsDefault());
+        }
+
+        if (dto.getIsSelected() != null && dto.getIsSelected()) {
+            addressRepository.resetSelectedForCustomer(customerId, addressId);
+            existingAddress.setIsSelected(dto.getIsSelected());
         }
 
         AddressResponse addressDTO = new AddressResponse();
@@ -213,7 +233,7 @@ public class AddressService {
         if (!customerRepository.existsById(customerId))
             throw new ResourceNotFoundException("Customer not found with ID: " + customerId);
 
-        List<Address> allCustomerAddresses = addressRepository.findByCustomerId(customerId);
+        List<Address> allCustomerAddresses = addressRepository.findByCustomerIdOrderByUpdatedAtDesc(customerId);
 
         //return allCustomerAddresses;
         return allCustomerAddresses.stream()
@@ -223,5 +243,21 @@ public class AddressService {
                     return dto;
                 })
                 .toList();
+    }
+
+    private void validateUniqueAddressType(Long customerId, AddressType addressType, Long addressId) {
+
+        // Multiple OTHER addresses are allowed
+        if (addressType == AddressType.OTHER) {
+            return;
+        }
+
+        boolean exists = (addressId == null)
+                ? addressRepository.existsByCustomerIdAndAddressType(customerId, addressType)
+                : addressRepository.existsByCustomerIdAndAddressTypeAndAddressIdNot(customerId, addressType, addressId);
+
+        if (exists) {
+            throw new BadRequestException(String.format("Only one %s address is allowed per customer", addressType));
+        }
     }
 }

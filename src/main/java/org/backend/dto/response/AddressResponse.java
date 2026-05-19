@@ -66,4 +66,7 @@ public class AddressResponse {
 
     @Schema(description = "Marks whether this address is default", example = "true")
     private Boolean isDefault;
+
+    @Schema(description = "Marks whether this address is default", example = "true")
+    private Boolean isSelected;
 }

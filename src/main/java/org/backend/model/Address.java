@@ -97,6 +97,10 @@ public class Address {
     @Builder.Default
     private Boolean isDefault = false;
 
+    @Column(name = "is_selected")
+    @Builder.Default
+    private Boolean isSelected = true;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

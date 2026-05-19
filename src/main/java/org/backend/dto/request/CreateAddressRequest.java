@@ -25,9 +25,9 @@ import java.math.BigDecimal;
 )
 public class CreateAddressRequest {
 
-    @Schema(description = "Unique customer ID", example = "101", requiredMode = Schema.RequiredMode.REQUIRED)
-    @NotNull(message = "Customer ID cannot be null")
-    private Long customerId;
+    //@Schema(description = "Unique customer ID", example = "101", requiredMode = Schema.RequiredMode.REQUIRED)
+    //@NotNull(message = "Customer ID cannot be null")
+    //private Long customerId;
 
     @Schema(description = "Customer full name", example = "Brahma", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Customer name is required")
@@ -94,4 +94,8 @@ public class CreateAddressRequest {
     @Schema(description = "Marks whether this address is default", example = "true", defaultValue = "false")
     @Builder.Default
     private Boolean isDefault = false;
+
+    @Schema(description = "Marks whether this address is selected", example = "true", defaultValue = "true")
+    @Builder.Default
+    private Boolean isSelected = false;
 }

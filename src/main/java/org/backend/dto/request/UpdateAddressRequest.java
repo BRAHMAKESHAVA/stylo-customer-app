@@ -80,4 +80,7 @@ public class UpdateAddressRequest {
 
     @Schema(description = "Marks address as default", example = "true")
     private Boolean isDefault;
+
+    @Schema(description = "Marks address as selected", example = "true")
+    private Boolean isSelected;
 }
