@@ -298,9 +298,7 @@ public class SalonSearchService {
         }
 
         //List<NearBySalonsProjection> rows = fetchNearbySalons(latitude, longitude, 0, "KM", salonName.trim());
-
         List<NearBySalonsProjection> rows = salonRepository.searchSalonsByKeyword(latitude, longitude, salonName.trim());
-
 
         if (rows == null || rows.isEmpty()) {
             throw new ResourceNotFoundException("Salon not found");
@@ -340,7 +338,6 @@ public class SalonSearchService {
         }).toList();
     }
 
-
     private List<NearBySalonsProjection> fetchNearbySalons(
             double latitude, double longitude,
             double distance, String unit, String keyword) {
@@ -364,7 +361,6 @@ public class SalonSearchService {
                 latitude, longitude,
                 minLat, maxLat, minLon, maxLon, distanceKm);
     }
-
 
     public List<SalonDetailsDTO> getPopularSalons(
             double latitude,

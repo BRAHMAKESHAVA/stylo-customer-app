@@ -79,7 +79,7 @@ public class AddressService {
             addressRepository.resetDefaultForCustomer(customerId);
 
         if (newAddress.getIsSelected())
-            addressRepository.resetDefaultForCustomer(customerId);
+            addressRepository.resetSelectedForCustomer(customerId);
 
         AddressResponse addressDTO = new AddressResponse();
         BeanUtils.copyProperties(addressRepository.save(newAddress), addressDTO);
