@@ -86,13 +86,13 @@ public class OtpService {
                     //requestKey, Duration.ofSeconds(OTP_EXPIRY_SECONDS)
             );
 
-        if (count > MAX_ATTEMPTS) {
-            throw new OtpException(
-                    "TOO_MANY_REQUESTS",
-                    "Too many OTP requests. Please try again later.",
-                    HttpStatus.TOO_MANY_REQUESTS
-            );
-        }
+//        if (count > MAX_ATTEMPTS) {
+//            throw new OtpException(
+//                    "TOO_MANY_REQUESTS",
+//                    "Too many OTP requests. Please try again later.",
+//                    HttpStatus.TOO_MANY_REQUESTS
+//            );
+//        }
 
         //String otp = String.format("%04d", random.nextInt(10000));
         String otp = "1234"; //static OTP
