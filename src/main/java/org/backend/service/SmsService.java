@@ -36,16 +36,20 @@ public class SmsService {
      * @param otp the OTP code to send
      * @throws OtpException if OTP sending fails due to rate limits or provider errors
      */
+    // SEND OTP
     public void sendOtp(String phoneNumber, String otp) {
         try {
             Twilio.init(accountSid, authToken);
+
             String phnoeNumberr = "+91" + phoneNumber;
+
             Message.creator(
                     new com.twilio.type.PhoneNumber(phnoeNumberr),
                     new com.twilio.type.PhoneNumber(twilioPhoneNumber),
-                     "<#> Your OTP code is: " + otp + "\n 2sOU1BmwXXR"
+                    "<#> Your OTP code is: " + otp + "\n 2sOU1BmwXXR"
                     //"Your OTP code is: " + otp + " 2sOU1BmwXXR"
-                    ).create();
+            ).create();
+
             //WhatsApp
 //            Message.creator(
 //                    new com.twilio.type.PhoneNumber("whatsapp:+91" + phoneNumber),
@@ -57,13 +61,15 @@ public class SmsService {
             //Twilio daily limit exceeded
             if (ex.getMessage() != null &&
                     ex.getMessage().contains("daily messages limit")) {
+
                 throw new OtpException(
                         "OTP_LIMIT_EXCEEDED",
                         "OTP service temporarily unavailable. Please try again later.Account exceeded the 50 daily messages limit",
                         HttpStatus.SERVICE_UNAVAILABLE
                 );
             }
-        } catch (Exception ex){
+
+        } catch (Exception ex) {
             //Any other Twilio failure
             throw new OtpException(
                     "OTP_PROVIDER_ERROR",

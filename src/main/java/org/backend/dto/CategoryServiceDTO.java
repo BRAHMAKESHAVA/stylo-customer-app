@@ -1,7 +1,9 @@
 package org.backend.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import jakarta.validation.constraints.*;
+import lombok.*;
+
+import java.math.BigDecimal;
 
 @Getter
 @AllArgsConstructor

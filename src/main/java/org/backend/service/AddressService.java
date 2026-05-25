@@ -2,7 +2,10 @@ package org.backend.service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.backend.dto.common.AddressDTO;
+import org.backend.dto.request.CreateAddressRequest;
+import org.backend.dto.request.UpdateAddressRequest;
+import org.backend.dto.response.AddressResponse;
+import org.backend.enums.AddressType;
 import org.backend.exception.BadRequestException;
 import org.backend.exception.ResourceNotFoundException;
 import org.backend.model.Address;
@@ -43,18 +46,44 @@ public class AddressService {
      * @throws ResourceNotFoundException if customer not found
      * @throws BadRequestException if maximum address count exceeded
      */
-    public AddressDTO createAddress(Long customerId, Address address) {
-        if (!customerRepository.existsByCustomerId(customerId)) throw new ResourceNotFoundException("Customer not found with ID: " + customerId);
-        // Check max address limit
+    // CREATE ADDRESS
+    public AddressResponse createAddress(Long customerId, CreateAddressRequest address) {
+
+        if (!customerRepository.existsByCustomerId(customerId))
+            throw new ResourceNotFoundException("Customer not found with ID: " + customerId);
+
         long count = addressRepository.countByCustomerId(customerId);
-        if (count >= maxAddressCount) throw new BadRequestException("Maximum " + maxAddressCount + " addresses allowed per customer");
+
+        if (count >= maxAddressCount)
+            throw new BadRequestException("Maximum " + maxAddressCount + " addresses allowed per customer");
+
+        // Validate country code
         validateCountryCode(address.getCountryCode());
-        if (address.getIsDefault() == null) address.setIsDefault(false);
-        // If new address is default → reset old default
-        if (address.getIsDefault()) addressRepository.resetDefaultForCustomer(customerId);
-        address.setCustomerId(customerId);
-        AddressDTO addressDTO = new AddressDTO();
-        BeanUtils.copyProperties(addressRepository.save(address), addressDTO);
+
+        // Validate only one HOME and one WORK before creating
+        validateUniqueAddressType(customerId, address.getAddressType(), null);
+
+        // Handle if it is null in the request - default to false
+        if (address.getIsDefault() == null)
+            address.setIsDefault(false);
+
+        // Handle if it is null in the request - default to true
+        if (address.getIsSelected() == null)
+            address.setIsSelected(true);
+
+        Address newAddress = new Address();
+        newAddress.setCustomerId(customerId);
+        BeanUtils.copyProperties(address, newAddress);
+
+        if (newAddress.getIsDefault())
+            addressRepository.resetDefaultForCustomer(customerId);
+
+        if (newAddress.getIsSelected())
+            addressRepository.resetSelectedForCustomer(customerId);
+
+        AddressResponse addressDTO = new AddressResponse();
+        BeanUtils.copyProperties(addressRepository.save(newAddress), addressDTO);
+
         return addressDTO;
     }
 
@@ -68,33 +97,74 @@ public class AddressService {
      * @return the updated address as AddressDTO
      * @throws ResourceNotFoundException if customer or address not found
      */
-    public AddressDTO updateAddress(Long customerId, Long addressId, AddressDTO dto) {
-        if (!customerRepository.existsById(customerId)) throw new ResourceNotFoundException("Customer not found with ID: " + customerId);
-        Address address = addressRepository
+    // UPDATE ADDRESS
+    public AddressResponse updateAddress(Long customerId, Long addressId, UpdateAddressRequest dto) {
+        if (!customerRepository.existsById(customerId))
+            throw new ResourceNotFoundException("Customer not found with ID: " + customerId);
+
+        Address existingAddress = addressRepository
                 .findByAddressIdAndCustomerId(addressId, customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Address not found for this customer"));
-        if (dto.getCustomerName() != null) address.setCustomerName(dto.getCustomerName());
-        if (dto.getHouseNumber() != null) address.setHouseNumber(dto.getHouseNumber());
-        if (dto.getBuildingName() != null) address.setBuildingName(dto.getBuildingName());
-        if (dto.getArea() != null) address.setArea(dto.getArea());
-        if (dto.getLandmark() != null) address.setLandmark(dto.getLandmark());
-        if (dto.getCity() != null) address.setCity(dto.getCity());
-        if (dto.getState() != null) address.setState(dto.getState());
-        if (dto.getCountryCode() != null){
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Address not found for this customer")
+                );
+
+        if (dto.getCustomerName() != null)
+            existingAddress.setCustomerName(dto.getCustomerName());
+
+        if (dto.getHouseNumber() != null)
+            existingAddress.setHouseNumber(dto.getHouseNumber());
+
+        if (dto.getBuildingName() != null)
+            existingAddress.setBuildingName(dto.getBuildingName());
+
+        if (dto.getArea() != null)
+            existingAddress.setArea(dto.getArea());
+
+        if (dto.getLandmark() != null)
+            existingAddress.setLandmark(dto.getLandmark());
+
+        if (dto.getCity() != null)
+            existingAddress.setCity(dto.getCity());
+
+        if (dto.getState() != null)
+            existingAddress.setState(dto.getState());
+
+        if (dto.getCountryCode() != null) {
             validateCountryCode(dto.getCountryCode());
-            address.setCountryCode(dto.getCountryCode());
+            existingAddress.setCountryCode(dto.getCountryCode());
         }
-        if (dto.getPinCode() != null) address.setPinCode(dto.getPinCode());
-        if (dto.getLatitude() != null) address.setLatitude(dto.getLatitude());
-        if (dto.getLongitude() != null) address.setLongitude(dto.getLongitude());
-        if (dto.getAddressType() != null) address.setAddressType(dto.getAddressType());
-        if (dto.getLabelName() != null) address.setLabelName(dto.getLabelName());
-        if (dto.getIsDefault() != null && dto.getIsDefault()){
+
+        if (dto.getPinCode() != null)
+            existingAddress.setPinCode(dto.getPinCode());
+
+        if (dto.getLatitude() != null)
+            existingAddress.setLatitude(dto.getLatitude());
+
+        if (dto.getLongitude() != null)
+            existingAddress.setLongitude(dto.getLongitude());
+
+        if (dto.getAddressType() != null) {
+            // Validate only one HOME and one WORK excluding current address
+            validateUniqueAddressType(customerId, dto.getAddressType(), addressId);
+            existingAddress.setAddressType(dto.getAddressType());
+        }
+
+        if (dto.getLabelName() != null)
+            existingAddress.setLabelName(dto.getLabelName());
+
+        if (dto.getIsDefault() != null && dto.getIsDefault()) {
             addressRepository.resetDefaultForCustomer(customerId, addressId);
-            address.setIsDefault(dto.getIsDefault());
+            existingAddress.setIsDefault(dto.getIsDefault());
         }
-        AddressDTO addressDTO = new AddressDTO();
-        BeanUtils.copyProperties(addressRepository.save(address), addressDTO);
+
+        if (dto.getIsSelected() != null && dto.getIsSelected()) {
+            addressRepository.resetSelectedForCustomer(customerId, addressId);
+            existingAddress.setIsSelected(dto.getIsSelected());
+        }
+
+        AddressResponse addressDTO = new AddressResponse();
+        BeanUtils.copyProperties(addressRepository.save(existingAddress), addressDTO);
+
         return addressDTO;
     }
 
@@ -107,11 +177,20 @@ public class AddressService {
      * @throws ResourceNotFoundException if customer or address not found
      * @throws BadRequestException if trying to delete a default address
      */
+    // DELETE ADDRESS
     public void deleteAddress(Long customerId, Long addressId) {
-        if (!customerRepository.existsById(customerId)) throw new ResourceNotFoundException("Customer not found with ID: " + customerId);
-        Address address = addressRepository.findByAddressIdAndCustomerId(addressId, customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Address not found for this customer"));
-        if (address.getIsDefault()) throw new BadRequestException("Default address cannot be deleted");
+        if (!customerRepository.existsById(customerId))
+            throw new ResourceNotFoundException("Customer not found with ID: " + customerId);
+
+        Address address = addressRepository
+                .findByAddressIdAndCustomerId(addressId, customerId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Address not found for this customer")
+                );
+
+        if (address.getIsDefault())
+            throw new BadRequestException("Default address cannot be deleted");
+
         addressRepository.delete(address);
     }
 
@@ -123,12 +202,22 @@ public class AddressService {
      * @return the address as AddressDTO
      * @throws ResourceNotFoundException if customer or address not found
      */
-    public AddressDTO getAddressById(Long customerId, Long addressId) {
-        if (!customerRepository.existsById(customerId)) throw new ResourceNotFoundException("Customer not found with ID: " + customerId);
-        Address address = addressRepository.findByAddressIdAndCustomerId(addressId, customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Address not found for the given customerId and addressId"));
-        AddressDTO addressDTO = new AddressDTO();
-        BeanUtils.copyProperties(address, addressDTO);
+    // GET ADDRESS BY ID
+    public AddressResponse getAddressById(Long customerId, Long addressId) {
+        if (!customerRepository.existsById(customerId))
+            throw new ResourceNotFoundException("Customer not found with ID: " + customerId);
+
+        Address customerAddress = addressRepository
+                .findByAddressIdAndCustomerId(addressId, customerId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Address not found for the given customerId and addressId"
+                        )
+                );
+
+        AddressResponse addressDTO = new AddressResponse();
+        BeanUtils.copyProperties(customerAddress, addressDTO);
+
         return addressDTO;
     }
 
@@ -139,13 +228,36 @@ public class AddressService {
      * @return list of addresses as AddressDTO
      * @throws ResourceNotFoundException if customer not found
      */
-    public List<AddressDTO> getAllAddresses(Long customerId) {
-        if (!customerRepository.existsById(customerId)) throw new ResourceNotFoundException("Customer not found with ID: " + customerId);
-        List<Address> addresses = addressRepository.findByCustomerId(customerId);
-        return addresses.stream().map(address -> {
-            AddressDTO dto = new AddressDTO();
-            BeanUtils.copyProperties(address, dto);
-            return dto;
-        }).toList();
+    // GET ALL ADDRESSES
+    public List<AddressResponse> getAllAddresses(Long customerId) {
+        if (!customerRepository.existsById(customerId))
+            throw new ResourceNotFoundException("Customer not found with ID: " + customerId);
+
+        List<Address> allCustomerAddresses = addressRepository.findByCustomerIdOrderByUpdatedAtDesc(customerId);
+
+        //return allCustomerAddresses;
+        return allCustomerAddresses.stream()
+                .map(address -> {
+                    AddressResponse dto = new AddressResponse();
+                    BeanUtils.copyProperties(address, dto);
+                    return dto;
+                })
+                .toList();
+    }
+
+    private void validateUniqueAddressType(Long customerId, AddressType addressType, Long addressId) {
+
+        // Multiple OTHER addresses are allowed
+        if (addressType == AddressType.OTHER) {
+            return;
+        }
+
+        boolean exists = (addressId == null)
+                ? addressRepository.existsByCustomerIdAndAddressType(customerId, addressType)
+                : addressRepository.existsByCustomerIdAndAddressTypeAndAddressIdNot(customerId, addressType, addressId);
+
+        if (exists) {
+            throw new BadRequestException(String.format("Only one %s address is allowed per customer", addressType));
+        }
     }
 }

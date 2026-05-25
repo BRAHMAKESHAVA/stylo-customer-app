@@ -3,13 +3,11 @@ package org.backend.controller;
 import lombok.RequiredArgsConstructor;
 import org.backend.dto.booking.BookingRequestDTO;
 import org.backend.dto.booking.BookingResponseDTO;
-import org.backend.dto.common.ApiResponse;
-import org.backend.model.Booking;
+import org.backend.dto.common.ApiResponseDTO;
+import org.backend.dto.request.AvailableSlotsRequest;
 import org.backend.service.BookingService;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -23,36 +21,35 @@ public class BookingController {
 
     // CREATE BOOKING
     @PostMapping
-    public BookingResponseDTO createBooking(@RequestBody BookingRequestDTO req) {
-        return bookingService.createBooking(10L, req);
+    public BookingResponseDTO createBooking(@RequestBody BookingRequestDTO bookingReq) {
+        return bookingService.createBooking(bookingReq);
     }
 
     // GET USER BOOKINGS
     @GetMapping("/customer/{customerId}")
-    public ApiResponse<List<BookingResponseDTO>> getUserBookings(@PathVariable Long customerId) {
+    public ApiResponseDTO<List<BookingResponseDTO>> getUserBookings(@PathVariable Long customerId) {
 
-        List<BookingResponseDTO> bookings =
-                bookingService.getCustomerBookings(customerId);
+        List<BookingResponseDTO> bookings = bookingService.getCustomerBookings(customerId);
 
-        return ApiResponse.<List<BookingResponseDTO>>builder()
+        return ApiResponseDTO.<List<BookingResponseDTO>>builder()
                 .status(true)
                 .message("Bookings fetched successfully")
                 .data(bookings)
                 .build();
     }
 
-    @GetMapping("/available-slots")
-    public List<String> getAvailableSlots(
-            @RequestParam Long salonId,
-            @RequestParam List<Long> serviceIds,
-            @RequestParam
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate date
-    ) {
+    @PostMapping("/available-slots")
+    public List<String> getAvailableSlots(@RequestBody AvailableSlotsRequest request) {
         return bookingService.getAvailableSlots(
-                salonId,
-                serviceIds,
-                date
+                request.getSalonId(),
+                request.getServiceIds(),
+                request.getDate()
         );
+    }
+
+    @PutMapping("/cancel/{bookingId}")
+    public String cancelBooking(@PathVariable Long bookingId) {
+        bookingService.cancelBooking(bookingId);
+        return "Booking cancelled successfully";
     }
 }

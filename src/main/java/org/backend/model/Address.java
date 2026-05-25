@@ -77,7 +77,7 @@ public class Address {
     private BigDecimal latitude;
 
     @NotNull(message = "Longitude is required")
-    @Digits(integer = 2, fraction = 6, message = "Longitude must have up to 2 digits before decimal and 6 after")
+    @Digits(integer = 3, fraction = 6, message = "Longitude must have up to 2 digits before decimal and 6 after")
     @DecimalMin(value = "-180.0", message = "Longitude must be >= -180")
     @DecimalMax(value = "180.0", message = "Longitude must be <= 180")
     @Column(name = "longitude", precision = 9, scale = 6, nullable = false)
@@ -94,7 +94,12 @@ public class Address {
     private String labelName;
 
     @Column(name = "is_default")
+    @Builder.Default
     private Boolean isDefault = false;
+
+    @Column(name = "is_selected")
+    @Builder.Default
+    private Boolean isSelected = true;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

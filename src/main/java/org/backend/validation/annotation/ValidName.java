@@ -62,6 +62,10 @@ public @interface ValidName {
     String message() default "Invalid name";
 
     Class<?>[] groups() default {};
+
     Class<? extends Payload>[] payload() default {};
+
+    boolean required() default true;
+
 }
 

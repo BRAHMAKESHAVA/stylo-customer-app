@@ -7,8 +7,8 @@ server:
       min-spare: 50
 
 spring:
-  profiles:
-    active: test
+  #profiles:
+    #active: test
 
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/my_database}
@@ -55,8 +55,9 @@ jwt:
 
 app:
   cors:
-    allowed-origins:
-      - "*"
+    allowed-origins: http://localhost:5173,http://192.168.1.50:5173,https://cavally-prebuccal-sherell.ngrok-free.dev
+  booking:
+    payment-hold-minutes: 10
 
 twilio:
   account:
@@ -67,6 +68,11 @@ twilio:
     from: ${TWILIO_SMS_FROM}
   whatsapp:
     sandbox: ${TWILIO_WHATSAPP_SANDBOX}
+
+otp:
+  expiry-minutes: ${OTP_EXPIRY_MINUTES:2}
+  max-attempts: ${OTP_MAX_ATTEMPTS:3}
+  lock-duration-minutes: ${OTP_LOCK_DURATION_MINUTES:10}
 
 address:
   max:

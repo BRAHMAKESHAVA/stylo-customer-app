@@ -1,6 +1,5 @@
 package org.backend.dto.booking;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -14,21 +13,49 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class BookingResponseDTO {
+
     private Long bookingId;
+
+    private BigDecimal grossAmount;
+    private BigDecimal platformFee;
+    private BigDecimal discountAmount;
     private BigDecimal finalAmount;
+
     private String status;
+    private String paymentProvider;
+
     private LocalDateTime startTime;
+    private LocalDateTime endTime;
     private LocalDateTime createdDate;
+
     private String salonName;
 
+    private Long totalDuration;
 
-    //NEW FIELDS (for refund preview)
     private String refundAmount;
     private String refundTier;
+    private String rejectionReason;
 
-    public BookingResponseDTO(Long bookingId, BigDecimal finalAmount, String status) {
+    // Constructor for your current usage
+    public BookingResponseDTO(
+            Long bookingId,
+            BigDecimal grossAmount,
+            BigDecimal platformFee,
+            BigDecimal discountAmount,
+            BigDecimal finalAmount,
+            String status,
+            LocalDateTime startTime,
+            LocalDateTime endTime,
+            Long totalDuration
+    ) {
         this.bookingId = bookingId;
+        this.grossAmount = grossAmount;
+        this.platformFee = platformFee;
+        this.discountAmount = discountAmount;
         this.finalAmount = finalAmount;
         this.status = status;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.totalDuration = totalDuration;
     }
 }

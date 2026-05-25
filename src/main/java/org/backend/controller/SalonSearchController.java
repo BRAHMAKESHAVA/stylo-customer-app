@@ -1,10 +1,16 @@
 package org.backend.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.backend.dto.*;
-import org.backend.dto.common.ApiResponse;
+import org.backend.dto.common.ApiResponseDTO;
 import org.backend.dto.common.PageResponse;
 import org.backend.service.SalonSearchService;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,7 +24,10 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/search")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*", allowedHeaders = "*")
+@Tag(
+        name = "Salons Discovery and Search",
+        description = "APIs for searching salons based on location, name, and services"
+)
 public class SalonSearchController {
 
     private final SalonSearchService salonSearchService;
@@ -35,22 +44,57 @@ public class SalonSearchController {
      * @param size the page size for pagination (optional)
      * @return ResponseEntity containing the API response with nearby salons data
      */
-    @GetMapping("/salon/nearby")
+    @GetMapping(
+            value = "/salon/nearby",
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    @Operation(
+            summary = "Get nearby salons",
+            description = "Fetches nearby salons based on latitude, longitude, and distance with pagination support.",
+            operationId = "getNearbySalons"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Nearby salons fetched successfully or no salons found near your location."
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid page number, page size, or invalid request parameters",
+                    content = @Content
+
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Internal server error",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
+            )
+    })
     public ResponseEntity<?> getNearbySalons(
             @RequestParam double latitude,
             @RequestParam double longitude,
             @RequestParam double distance,
             @RequestParam(defaultValue = "KM") String unit,
-            @RequestParam(required = false) Integer page,
-            @RequestParam(required = false) Integer size
+            @RequestParam(required = true) Integer page,
+            @RequestParam(required = true) Integer size
     ) {
 
         // With pagination
         if (page != null && size != null) {
             PageResponse<SalonDetailsDTO> response = salonSearchService.findNearbySalonsWithPagination(
-                            latitude, longitude, distance, unit, page, size);
+                    latitude, longitude, distance, unit, page, size);
             return ResponseEntity.ok(
-                    ApiResponse.<PageResponse<SalonDetailsDTO>>builder()
+                    ApiResponseDTO.<PageResponse<SalonDetailsDTO>>builder()
                             .status(true)
                             .message("Nearby salons fetched successfully with pagination.")
                             .data(response)
@@ -62,7 +106,7 @@ public class SalonSearchController {
         List<SalonDetailsDTO> salons = salonSearchService.findNearbySalons(latitude, longitude, distance, unit);
         String message = salons.isEmpty() ? "No salons found near your location." : "Nearby salons fetched successfully.";
         return ResponseEntity.ok(
-                ApiResponse.<List<SalonDetailsDTO>>builder()
+                ApiResponseDTO.<List<SalonDetailsDTO>>builder()
                         .status(true)
                         .message(message)
                         .data(salons)
@@ -80,15 +124,57 @@ public class SalonSearchController {
      * @param request the request containing the list of service names to search for
      * @return ResponseEntity containing the API response with salons offering the selected services
      */
-    @PostMapping("/salon/search-by-services")
-    public ResponseEntity<ApiResponse<List<SalonSearchWithSelectedServicesResponseDTO>>> searchSalonsByServices(
+    @PostMapping(
+            value = "/salon/search-by-services",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    @Operation(
+            summary = "Search salons by selected services",
+            description = "Searches nearby salons that provide all selected services within a geographical radius.",
+            operationId = "searchSalonsByServices"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Salons fetched successfully or no salons found for the selected service."
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "At least one valid service must be selected or invalid request parameters",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "415",
+                    description = "Unsupported media type",
+                    content = @Content
+
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Internal server error",
+                    content = @Content
+
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
+            )
+    })
+    public ResponseEntity<ApiResponseDTO<List<SalonSearchWithSelectedServicesResponseDTO>>> searchSalonsByServices(
             @RequestParam double latitude,
             @RequestParam double longitude,
             @RequestParam double distance,
             @RequestParam String unit,
             @RequestBody SalonSearchWithSelectedServicesRequest request
     ) {
-System.out.println(request);
+        System.out.println(request);
         List<SalonSearchWithSelectedServicesResponseDTO> result =
                 salonSearchService.findSalonsWithSelectedServices(
                         latitude,
@@ -99,26 +185,63 @@ System.out.println(request);
                 );
 
         if (result.isEmpty())
-            return ResponseEntity.ok(new ApiResponse<>(true, "No salons found for the selected service.", List.of()));
+            return ResponseEntity.ok(new ApiResponseDTO<>(true, "No salons found for the selected service.", List.of()));
 
-        return ResponseEntity.ok(new ApiResponse<>(true, "Salons fetched successfully", result)
+        return ResponseEntity.ok(new ApiResponseDTO<>(true, "Salons fetched successfully", result)
         );
     }
 
-    @GetMapping("/salons/nearby/suggestions")
-    public ResponseEntity<?> searchNearbySalons(
+    /**
+     * Searches nearby salons using keyword suggestions.
+     *
+     * @param latitude the latitude of the search location
+     * @param longitude the longitude of the search location
+     * @param distance the search radius distance
+     * @param keyword the search keyword
+     * @param unit the unit of distance
+     * @return ResponseEntity containing the API response with salon suggestions
+     */
+    @GetMapping(
+            value = "/salons/nearby/suggestions",
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    @Operation(
+            summary = "Search nearby salons suggestions",
+            description = "Searches nearby salons using keyword suggestions within a geographical area.",
+            operationId = "searchNearbySalons"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Search results fetched successfully"
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Internal server error",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
+            )
+    })
+    public ResponseEntity<?> searchNearbySalonSuggestions(
             @RequestParam double latitude,
             @RequestParam double longitude,
-            @RequestParam double distance,
-            @RequestParam String keyword,
-            @RequestParam(defaultValue = "KM") String unit
+            //@RequestParam double distance,
+            @RequestParam String keyword
+            //@RequestParam(defaultValue = "KM") String unit
     ) {
-        List<SalonDetailsDTO> salons =
-                salonSearchService.searchNearbySalons(
-                        latitude, longitude, distance, unit, keyword);
+        List<SalonDetailsDTO> salons = salonSearchService.searchNearbySalonSuggestions(latitude, longitude, keyword);
 
         return ResponseEntity.ok(
-                ApiResponse.<List<SalonDetailsDTO>>builder()
+                ApiResponseDTO.<List<SalonDetailsDTO>>builder()
                         .status(true)
                         .message("Search results fetched successfully")
                         .data(salons)
@@ -126,22 +249,91 @@ System.out.println(request);
         );
     }
 
-    @GetMapping("/salons/by-name")
-    public ResponseEntity<?> getSalonsByName(
+    /**
+     * Retrieves salons by salon name.
+     *
+     * @param salonName the salon name
+     * @param latitude the latitude of the search location
+     * @param longitude the longitude of the search location
+     * @param unit the unit of distance
+     * @return ResponseEntity containing the API response with salon details
+     */
+    @GetMapping(
+            value = "/salons/by-name",
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    @Operation(
+            summary = "Get salons by name",
+            description = "Fetches salons by salon name along with distance and salon details.",
+            operationId = "getSalonsByName"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Salons fetched successfully"
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Salon not found",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Internal server error",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
+            )
+    })
+    public ResponseEntity<?> getNearbySalonByName(
             @RequestParam String salonName,
             @RequestParam double latitude,
-            @RequestParam double longitude,
-            @RequestParam(defaultValue = "KM") String unit
+            @RequestParam double longitude
+            //@RequestParam double distance,
+            //@RequestParam(defaultValue = "KM") String unit
     ) {
 
-        List<SalonDetailsDTO> salons =
-                salonSearchService.getSalonsByName(salonName, latitude, longitude, unit);
+        //List<SalonDetailsDTO> salons = salonSearchService.getNearbySalonByName(salonName, latitude, longitude, distance,unit);
+
+        List<SalonDetailsDTO> salons = salonSearchService.getNearbySalonByName(salonName, latitude, longitude);
 
         return ResponseEntity.ok(
-                ApiResponse.<List<SalonDetailsDTO>>builder()
+                ApiResponseDTO.<List<SalonDetailsDTO>>builder()
                         .status(true)
                         .message("Salons fetched successfully")
                         .data(salons)
+                        .build()
+        );
+    }
+
+    @GetMapping("/salons/popular")
+    public ResponseEntity<?> getPopularSalons(
+            @RequestParam double latitude,
+            @RequestParam double longitude,
+            @RequestParam double distance,
+            @RequestParam(defaultValue = "KM") String unit,
+            @RequestParam(defaultValue = "20") Integer size
+    ) {
+
+        List<SalonDetailsDTO> popularSalons =
+                salonSearchService.getPopularSalons(
+                        latitude, longitude,
+                        distance, unit, size
+                );
+
+        return ResponseEntity.ok(
+                ApiResponseDTO.<List<SalonDetailsDTO>>builder()
+                        .status(true)
+                        .message("Popular salons fetched successfully.")
+                        .data(popularSalons)
                         .build()
         );
     }

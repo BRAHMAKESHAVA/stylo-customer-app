@@ -1,12 +1,16 @@
 package org.backend.service;
 
 import lombok.RequiredArgsConstructor;
+import org.backend.dto.request.CreateSalonResourceRequest;
+import org.backend.dto.request.UpdateSalonResourceRequest;
+import org.backend.dto.response.SalonResourceResponse;
 import org.backend.exception.BadRequestException;
 import org.backend.exception.DuplicateResourceException;
 import org.backend.exception.ResourceNotFoundException;
 import org.backend.model.SalonResource;
 import org.backend.repository.SalonRepository;
 import org.backend.repository.SalonResourceRepository;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -19,60 +23,93 @@ public class SalonResourceService {
     /**
      * Create a new resource for a salon.
      */
-    public SalonResource createResource(SalonResource request) {
-        // Verify that the salon exists
-        salonRepository.findById(request.getSalonId()).orElseThrow(() -> new ResourceNotFoundException("Salon not found"));
+    // CREATE RESOURCE
+    public SalonResourceResponse createResource(CreateSalonResourceRequest request) {
 
-        // Ensure only one resource record exists per salon
+        salonRepository.findById(request.getSalonId())
+                .orElseThrow(() -> new ResourceNotFoundException("Salon not found"));
+
         if (resourceRepository.existsBySalonId(request.getSalonId())) {
             throw new DuplicateResourceException(
                     "Resource already exists for this salon. Please update the existing one."
             );
         }
 
-        return resourceRepository.save(request);
+        SalonResource resource = new SalonResource();
+        BeanUtils.copyProperties(request, resource);
+
+        SalonResourceResponse response = new SalonResourceResponse();
+        BeanUtils.copyProperties(resourceRepository.save(resource), response);
+
+        return response;
     }
 
     /**
      * Retrieve a resource by salon ID.
      */
-    public SalonResource getResourceBySalonId(Long salonId) {
-        // Confirm salon exists before fetching resources
-        salonRepository.findById(salonId).orElseThrow(() -> new ResourceNotFoundException("Salon not found"));
+    // GET RESOURCE BY SALON
+    public SalonResourceResponse getResourceBySalonId(Long salonId) {
+        salonRepository.findById(salonId)
+                .orElseThrow(() -> new ResourceNotFoundException("Salon not found"));
 
-        return resourceRepository.findBySalonId(salonId)
-                .orElseThrow(() -> new ResourceNotFoundException("Resource not found for salon"));
+        SalonResource resource = resourceRepository.findBySalonId(salonId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Resource not found for salon")
+                );
+
+        SalonResourceResponse response = new SalonResourceResponse();
+        BeanUtils.copyProperties(resource, response);
+
+        return response;
     }
 
     /**
      * Update an existing resource.
      */
-    public SalonResource updateResource(Long resourceId, SalonResource request) {
+    // UPDATE RESOURCE
+    public SalonResourceResponse updateResource(Long resourceId, UpdateSalonResourceRequest request) {
 
         if (request.getSalonId() == null) {
-            throw new BadRequestException("Salon ID is required to update the resource.");
+            throw new BadRequestException(
+                    "Salon ID is required to update the resource."
+            );
         }
-        SalonResource resource =  resourceRepository.findByIdAndSalonId(resourceId, request.getSalonId())
-                .orElseThrow(() -> new ResourceNotFoundException("Resource with ID:" + resourceId + " was not found for salon:" +request.getSalonId()));
 
-        // Update resource count if provided and valid
+        SalonResource resource = resourceRepository
+                .findByIdAndSalonId(resourceId, request.getSalonId())
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Resource with ID:" + resourceId +
+                                        " was not found for salon:" + request.getSalonId()
+                        )
+                );
+
         if (request.getResourceCount() != null) {
-            if (request.getResourceCount() < 1) throw new BadRequestException("Resource count must be >= 1");
+            if (request.getResourceCount() < 1)
+                throw new BadRequestException("Resource count must be >= 1");
+
             resource.setResourceCount(request.getResourceCount());
         }
 
-        return resourceRepository.save(resource);
+        SalonResourceResponse response = new SalonResourceResponse();
+        BeanUtils.copyProperties(resourceRepository.save(resource), response);
+
+        return response;
     }
 
     /**
      * Delete a resource by salon and resource ID.
      */
+    // DELETE RESOURCE
     public void deleteResource(Long salonId, Long resourceId) {
-        // Ensure the resource exists for the given salon before deletion
         resourceRepository.findByIdAndSalonId(resourceId, salonId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Resource not found for salonId: " + salonId + " and resourceId: " + resourceId
-                ));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Resource not found for salonId: " + salonId +
+                                        " and resourceId: " + resourceId
+                        )
+                );
+
         resourceRepository.deleteById(resourceId);
     }
 }

@@ -3,10 +3,10 @@ package org.backend.service;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.backend.dto.auth.request.SendOtpRequest;
-import org.backend.dto.auth.request.VerifyOtpRequest;
-import org.backend.dto.auth.response.AuthResponseDTO;
-import org.backend.dto.auth.response.SendOtpResponse;
+import org.backend.dto.request.SendOtpRequest;
+import org.backend.dto.request.VerifyOtpRequest;
+import org.backend.dto.response.AuthResponse;
+import org.backend.dto.response.SendOtpResponse;
 import org.backend.enums.Role;
 import org.backend.exception.OtpException;
 import org.backend.model.Customer;
@@ -14,6 +14,7 @@ import org.backend.model.Users;
 import org.backend.repository.CustomerRepository;
 import org.backend.repository.UserRepository;
 import org.backend.utill.JwtUtill;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -30,11 +31,19 @@ import java.time.Duration;
 @RequiredArgsConstructor
 @Slf4j
 public class OtpService {
+    @Value("${otp.expiry-minutes}")
+    private int OTP_EXPIRY_MINUTES;
 
-    private static final int OTP_EXPIRY_MINUTES = 3;
+    @Value("${otp.max-attempts}")
+    private int MAX_ATTEMPTS;
+
+    @Value("${otp.lock-duration-minutes}")
+    private int OTP_LOCK_DURATION_MINUTES;
+
+    //private static final int OTP_EXPIRY_MINUTES = 2;
     //private static final int OTP_EXPIRY_SECONDS = 30;
-    private static final int MAX_ATTEMPTS = 3;
-    private static final int OTP_LOCK_DURATION_MINUTES = 10;
+    //private static final int MAX_ATTEMPTS = 3;
+    //private static final int OTP_LOCK_DURATION_MINUTES = 10;
 
     private final StringRedisTemplate redisTemplate;
     private final UserRepository userRepository;
@@ -51,12 +60,14 @@ public class OtpService {
      * The method checks if the user exists based on the provided mobile number and role before generating the OTP.
      * If the user is a customer, it also verifies that a corresponding customer record exists. If the OTP generation is successful,
      * it sends the OTP via SMS and returns a response indicating success and the OTP expiry time.
+     *
      * @param request
      * @return
      */
     // GENERATE OTP
     public SendOtpResponse generateOtp(SendOtpRequest request) {
         String mobile = request.getMobile();
+        log.info("Received OTP generation request for mobile: {}", mobile);
         Role role = request.getRole();
 
         //        if (!userRepository.existsByMobile(mobile)) {
@@ -108,12 +119,13 @@ public class OtpService {
      * The method also tracks the number of validation attempts and enforces limits to prevent brute-force attacks. If the OTP is valid, it deletes the OTP and attempt records from Redis.
      * It then checks the user's role and ensures that a corresponding customer record exists for customers.
      * Finally, it generates and returns access and refresh tokens for the authenticated user.
+     *
      * @param otpVerifyRequest
      * @param request
      * @return
      */
     // VALIDATE OTP
-    public AuthResponseDTO validateOtp(VerifyOtpRequest otpVerifyRequest, HttpServletRequest request) {
+    public AuthResponse validateOtp(VerifyOtpRequest otpVerifyRequest, HttpServletRequest request) {
         String mobile = otpVerifyRequest.getMobile();
         Role role = otpVerifyRequest.getRole();
         String userOtp = otpVerifyRequest.getOtp();
@@ -175,7 +187,7 @@ public class OtpService {
         redisTemplate.delete(attemptsKey);
         //redisTemplate.opsForValue().set("verified:mobile:" + mobile, mobile);
 
-        return AuthResponseDTO.builder()
+        return AuthResponse.builder()
                 .userId(userId)
                 .customerId(customerId)
                 .accessToken(accessToken)

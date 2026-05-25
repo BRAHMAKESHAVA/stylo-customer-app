@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
   address: 0.0.0.0
   tomcat:
     threads:
@@ -7,11 +7,13 @@ server:
       min-spare: 50
 
 spring:
+  #  profiles:
+  #    active: test
   datasource:
-    url: jdbc:mysql://localhost:3306/my_database?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=Asia/Kolkata
-    username: root
-    password: root
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    #url: ${DB_URL:jdbc:postgresql://localhost:5432/my_database}
+    url: ${DB_URL:jdbc:mysql://localhost:3306/my_database?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
     hikari:
       maximum-pool-size: 50
       minimum-idle: 10
@@ -26,23 +28,25 @@ spring:
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.MySQLDialect
 
   redis:
-    host: localhost
-    port: 6379
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
 
   mvc:
     throw-exception-if-no-handler-found: true
 
-#  web:
-#    resources:
-#      add-mappings: false
+  web:
+    resources:
+      add-mappings: false
+
 logging:
   level:
     root: INFO
     org.backend: DEBUG
     org.springframework.security: DEBUG
+  pattern:
+    console: "%green(%d{HH:mm:ss.SSS}) %highlight(%-5level) %cyan([%thread]) %magenta(%logger{15}) - %msg%n"
 
 jwt:
   secret: ${JWT_SECRET:GE+7Djq+PZMw+UAz73IsRTzDu3S+kTONJAbhvWHjiOEg+T+mdMBgpqv6uXL+u73cRJ9EQX8aSw86UCl8SCr++4OFGSfMepD8+pgAKAnM9qPLijTi8KNWVdEXGixBz/u5Cmb/ahhJI1+sxKGwwpcRLgL5XPS+wkgnHxFFfjq3emR3tej+oZBhT3X6lIrtOH4VXhcD0WFOa6Nu64PmiqCXEA==}
@@ -51,9 +55,9 @@ jwt:
 
 app:
   cors:
-    allowed-origins:
-      - "*"
-
+    allowed-origins: http://localhost:5173,http://192.168.1.50:5173, https://cavally-prebuccal-sherell.ngrok-free.dev
+  booking:
+    payment-hold-minutes: 10
 twilio:
   account:
     sid: ${TWILIO_SID}
@@ -64,6 +68,7 @@ twilio:
   whatsapp:
     sandbox: ${TWILIO_WHATSAPP_SANDBOX}
 
-razorpay:
-  key-id: ${RAZORPAY_KEY_ID}
-  key-secret: ${RAZORPAY_KEY_SECRET}
+
+address:
+  max:
+    count: ${ADDRESS_MAX_COUNT:5}

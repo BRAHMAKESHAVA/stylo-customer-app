@@ -1,12 +1,21 @@
 package org.backend.service;
 
 import lombok.RequiredArgsConstructor;
+import org.backend.dto.common.PageResponse;
+import org.backend.dto.request.CreateServiceCategoryRequest;
+import org.backend.dto.request.UpdateServiceCategoryRequest;
+import org.backend.dto.response.ServiceCategoryResponse;
 import org.backend.exception.BadRequestException;
 import org.backend.exception.DuplicateResourceException;
 import org.backend.exception.ResourceNotFoundException;
 import org.backend.model.ServiceCategory;
 import org.backend.repository.CategoryRepository;
 import org.backend.repository.SalonRepository;
+import org.springframework.beans.BeanUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -29,80 +38,136 @@ public class CategoryService {
      *
      * @param category the category details to create
      * @return the created ServiceCategory
-     * @throws ResourceNotFoundException if salon not found
+     * @throws ResourceNotFoundException  if salon not found
      * @throws DuplicateResourceException if category name already exists for the salon
      */
-    public ServiceCategory createCategory(ServiceCategory category) {
+    // CREATE CATEGORY
+    public ServiceCategoryResponse createCategory(CreateServiceCategoryRequest category) {
 
-        // Ensure the salon exists before creating a category
         salonRepository.findById(category.getSalonId())
-                .orElseThrow(() -> new ResourceNotFoundException("Salon not found with id: " + category.getSalonId()));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Salon not found with id: " + category.getSalonId()
+                        )
+                );
 
-        // Normalize the category name
         String categoryName = category.getCategoryName().trim();
 
-        // Check for duplicate category names within the same salon
-        boolean exists = categoryRepository.existsBySalonIdAndCategoryNameIgnoreCase(category.getSalonId(), categoryName);
+        if (categoryName.isEmpty()) {
+            throw new BadRequestException(
+                    "Category name cannot be empty. Please provide a valid name."
+            );
+        }
 
-        if (exists) throw new DuplicateResourceException("Category '" + categoryName + "' already exists for this salon");
+        boolean exists = categoryRepository
+                .existsBySalonIdAndCategoryNameIgnoreCase(
+                        category.getSalonId(),
+                        categoryName
+                );
 
-        // Assign normalized name and save
+        if (exists)
+            throw new DuplicateResourceException(
+                    "Category '" + categoryName + "' already exists for this salon"
+            );
+
         category.setCategoryName(categoryName);
-        if (category.getIsActive() == null) category.setIsActive(true);
-        return categoryRepository.save(category);
+
+        if (category.getIsActive() == null)
+            category.setIsActive(true);
+
+        ServiceCategory newCateory = new ServiceCategory();
+        BeanUtils.copyProperties(category, newCateory);
+
+        ServiceCategoryResponse response = new ServiceCategoryResponse();
+        BeanUtils.copyProperties(categoryRepository.save(newCateory), response);
+
+        return response;
     }
 
     /**
      * Updates an existing category.
      * Allows updating category name and active status, with validation for uniqueness.
      *
-     * @param id the ID of the category to update
+     * @param id      the ID of the category to update
      * @param request the update request containing new details
      * @return the updated ServiceCategory
-     * @throws BadRequestException if salon ID is missing or category name is empty
-     * @throws ResourceNotFoundException if category not found for the salon
+     * @throws BadRequestException        if salon ID is missing or category name is empty
+     * @throws ResourceNotFoundException  if category not found for the salon
      * @throws DuplicateResourceException if new category name already exists
      */
-    public ServiceCategory updateCategory(Long id, ServiceCategory request) {
+    // UPDATE CATEGORY
+    public ServiceCategoryResponse updateCategory(Long id, UpdateServiceCategoryRequest request) {
         if (request.getSalonId() == null) {
-            throw new BadRequestException("Salon ID is required to update the category.");
+            throw new BadRequestException(
+                    "Salon ID is required to update the category."
+            );
         }
-        // Ensure the category exists and belongs to the specified salon
-        ServiceCategory category = categoryRepository.findByCategoryIdAndSalonId(id, request.getSalonId())
-                .orElseThrow(() -> new ResourceNotFoundException("Category with ID:" + id + " was not found for salon:" +request.getSalonId()));
-        // Update category name if provided, ensuring uniqueness
+
+        ServiceCategory category = categoryRepository
+                .findByCategoryIdAndSalonId(id, request.getSalonId())
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Category with ID:" + id +
+                                        " was not found for salon:" + request.getSalonId()
+                        )
+                );
+
         if (request.getCategoryName() != null) {
             String categoryName = request.getCategoryName().trim();
-            if (categoryName.isEmpty()) throw new BadRequestException("Category name cannot be empty. Please provide a valid name.");
+
+            if (categoryName.isEmpty())
+                throw new BadRequestException(
+                        "Category name cannot be empty. Please provide a valid name."
+                );
+
             boolean exists = categoryRepository
                     .existsBySalonIdAndCategoryNameIgnoreCaseAndCategoryIdNot(
                             category.getSalonId(),
                             categoryName,
                             category.getCategoryId()
                     );
-            if (exists) throw new DuplicateResourceException("Category name already in use. Please use a different name.");
-            if (category.getIsActive() == null) category.setIsActive(true);
+
+            if (exists)
+                throw new DuplicateResourceException(
+                        "Category name already in use. Please use a different name."
+                );
+
+            if (category.getIsActive() == null)
+                category.setIsActive(true);
+
             category.setCategoryName(categoryName);
         }
 
-        // Update active status if provided
-        if (request.getIsActive() != null) category.setIsActive(request.getIsActive());
-        return categoryRepository.save(category);
+        if (request.getIsActive() != null)
+            category.setIsActive(request.getIsActive());
+
+        ServiceCategoryResponse response = new ServiceCategoryResponse();
+        BeanUtils.copyProperties(categoryRepository.save(category), response);
+
+        return response;
     }
 
     /**
      * Deletes a category by its ID.
      * Ensures the category exists and belongs to the specified salon before deletion.
      *
-     * @param salonId the ID of the salon
+     * @param salonId    the ID of the salon
      * @param categoryId the ID of the category to delete
      * @throws ResourceNotFoundException if category not found for the salon
      */
+    // DELETE CATEGORY
     public void deleteCategory(Long salonId, Long categoryId) {
-        // Ensure the category exists and belongs to the specified salon
-        ServiceCategory category = categoryRepository.findByCategoryIdAndSalonId(categoryId, salonId)
-                .orElseThrow(() -> new ResourceNotFoundException("Category not found for this salon"));
-        categoryRepository.deleteById(categoryId);
+        ServiceCategory category = categoryRepository
+                .findByCategoryIdAndSalonId(categoryId, salonId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Category not found for this salon"
+                        )
+                );
+
+        //Soft delete
+        category.setIsActive(false);
+        categoryRepository.save(category);
     }
 
     /**
@@ -110,8 +175,30 @@ public class CategoryService {
      *
      * @return list of all ServiceCategory
      */
-    public List<ServiceCategory> getAllCategories() {
-        return categoryRepository.findAll();
+    // GET ALL CATEGORIES
+    public PageResponse<ServiceCategory> getAllCategories(int page, int size) {
+
+        if (page < 1) {
+            throw new BadRequestException("Page number must be >= 1");
+        }
+
+        if (size < 1 || size > 100) {
+            throw new BadRequestException("Page size must be between 1 and 100");
+        }
+
+        // Convert to 0-based index
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.by("categoryId").descending());
+
+        Page<ServiceCategory> pageData = categoryRepository.findAll(pageable);
+
+        return PageResponse.<ServiceCategory>builder()
+                .page(page)
+                .size(size)
+                .totalElements(pageData.getTotalElements())
+                .totalPages(pageData.getTotalPages())
+                .last(pageData.isLast())
+                .content(pageData.getContent())
+                .build();
     }
 
     /**
@@ -121,9 +208,22 @@ public class CategoryService {
      * @return list of ServiceCategory for the salon
      * @throws ResourceNotFoundException if salon not found
      */
-    public List<ServiceCategory> getCategoriesBySalon(Long salonId) {
-        // Ensure the salon exists before creating a category
-        salonRepository.findById(salonId).orElseThrow(() -> new ResourceNotFoundException("Salon not found with id: " + salonId));
-        return categoryRepository.findBySalonId(salonId);
+    // GET CATEGORIES BY SALON
+    public List<ServiceCategoryResponse> getCategoriesBySalon(Long salonId) {
+        salonRepository.findById(salonId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Salon not found with id: " + salonId
+                        )
+                );
+
+        return categoryRepository.findBySalonId(salonId)
+                .stream()
+                .map(category -> {
+                    ServiceCategoryResponse dto = new ServiceCategoryResponse();
+                    BeanUtils.copyProperties(category, dto);
+                    return dto;
+                })
+                .toList();
     }
 }

@@ -1,10 +1,10 @@
 package org.backend.service;
 
 import lombok.RequiredArgsConstructor;
-import org.backend.dto.CategoryGroupDTO;
-import org.backend.dto.CategoryResponse;
-import org.backend.dto.CategoryServiceDTO;
-import org.backend.dto.UpdateServiceRequest;
+import org.backend.dto.*;
+import org.backend.dto.request.CreateSalonServiceRequest;
+import org.backend.dto.request.UpdateSalonServiceRequest;
+import org.backend.dto.response.SalonServiceResponse;
 import org.backend.exception.BadRequestException;
 import org.backend.exception.DuplicateResourceException;
 import org.backend.exception.ResourceNotFoundException;
@@ -13,12 +13,12 @@ import org.backend.model.ServiceCategory;
 import org.backend.repository.CategoryRepository;
 import org.backend.repository.SalonRepository;
 import org.backend.repository.SalonServiceRepository;
+import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -40,17 +40,13 @@ public class SalonServices {
 
     /**
      * Fetches all services for a given salon, grouped by category.
-     *
-     * @param salonId the ID of the salon
-     * @return a list of CategoryGroupDTO containing services grouped by category
-     * @throws ResourceNotFoundException if salon not found or no services exist
      */
+    // GET SERVICES BY SALON
     public List<CategoryGroupDTO> getServicesBySalon(Long salonId) {
         if (!salonRepository.existsById(salonId)) {
             throw new ResourceNotFoundException("Salon not found");
         }
 
-        // Build a map of categoryId -> categoryName for lookup
         List<ServiceCategory> categories = categoryRepository.findAll();
 
         Map<Long, String> categoryMap = categories.stream()
@@ -59,22 +55,15 @@ public class SalonServices {
                         ServiceCategory::getCategoryName
                 ));
 
-        // Retrieve all services for the salon
-        List<SalonService> services =
-                salonServiceRepository.findBySalonId(salonId);
+        List<SalonService> services = salonServiceRepository.findBySalonId(salonId);
 
         if (services.isEmpty()) {
             throw new ResourceNotFoundException("No services found for this salon");
         }
 
-        // Group services by categoryId
-        Map<Long, List<SalonService>> groupedByCategory =
-                services.stream()
-                        .collect(Collectors.groupingBy(
-                                SalonService::getCategoryId
-                        ));
+        Map<Long, List<SalonService>> groupedByCategory = services.stream()
+                .collect(Collectors.groupingBy(SalonService::getCategoryId));
 
-        // Convert grouped data into DTOs
         return groupedByCategory.entrySet().stream()
                 .map(entry -> new CategoryGroupDTO(
                         entry.getKey(),
@@ -86,23 +75,16 @@ public class SalonServices {
 
     /**
      * Creates a new service for a salon.
-     * Validates salon and category existence, and ensures service name uniqueness.
-     *
-     * @param request the SalonService object containing service details
-     * @return the created SalonService
-     * @throws ResourceNotFoundException if salon or category not found
-     * @throws DuplicateResourceException if service name already exists for the salon
      */
-    public SalonService createService(SalonService request) {
-        // Validate salon existence
+    // CREATE SERVICE
+    public SalonServiceResponse createService(CreateSalonServiceRequest request) {
+
         salonRepository.findById(request.getSalonId())
                 .orElseThrow(() -> new ResourceNotFoundException("Salon not found"));
 
-        // Validate category existence
         categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
-        // Ensure service name is unique within the salon
         boolean exists = salonServiceRepository
                 .existsBySalonIdAndServiceNameIgnoreCase(
                         request.getSalonId(),
@@ -115,39 +97,36 @@ public class SalonServices {
             );
         }
 
-        if (request.getIsActive() == null) request.setIsActive(true);
+        if (request.getIsActive() == null)
+            request.setIsActive(true);
 
-        return salonServiceRepository.save(request);
+        SalonService service = new SalonService();
+        BeanUtils.copyProperties(request, service);
+
+        SalonServiceResponse dto = new SalonServiceResponse();
+        BeanUtils.copyProperties(salonServiceRepository.save(service), dto);
+
+        return dto;
     }
 
     /**
      * Updates an existing service.
-     * Allows updating service name, duration, buffer, price, and active status with validation.
-     *
-     * @param serviceId the ID of the service to update
-     * @param request the UpdateServiceRequest containing update details
-     * @return the updated SalonService
-     * @throws BadRequestException if salon ID is missing
-     * @throws ResourceNotFoundException if service not found for the salon
-     * @throws DuplicateResourceException if new service name already exists
      */
-    public SalonService updateService(Long serviceId, UpdateServiceRequest request) {
+    // UPDATE SERVICE
+    public SalonServiceResponse updateService(Long serviceId, UpdateSalonServiceRequest request) {
         if (request.getSalonId() == null) {
             throw new BadRequestException("Salon ID is required to update the service.");
         }
 
-        SalonService service =
-                salonServiceRepository.findByServiceIdAndSalonId(
-                                serviceId,
-                                request.getSalonId()
+        SalonService service = salonServiceRepository
+                .findByServiceIdAndSalonId(serviceId, request.getSalonId())
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Service with ID " + serviceId +
+                                        " not found for salon ID " + request.getSalonId()
                         )
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException(
-                                        "Service with ID " + serviceId + " not found for salon ID " + request.getSalonId()
-                                )
-                        );
+                );
 
-        // Update service name with duplicate check
         if (request.getServiceName() != null) {
             String serviceName = request.getServiceName().trim();
 
@@ -167,7 +146,6 @@ public class SalonServices {
             service.setServiceName(serviceName);
         }
 
-        // Update other fields if provided
         if (request.getDurationMinutes() != null) {
             service.setDurationMinutes(request.getDurationMinutes());
         }
@@ -184,99 +162,102 @@ public class SalonServices {
             service.setIsActive(request.getIsActive());
         }
 
-        return salonServiceRepository.save(service);
+        SalonServiceResponse dto = new SalonServiceResponse();
+        BeanUtils.copyProperties(salonServiceRepository.save(service), dto);
+
+        return dto;
     }
 
     /**
      * Retrieves all services grouped by category.
-     * Fetches services from the repository and groups them by category name.
-     *
-     * @return a list of CategoryResponse with services grouped by category
      */
+    // GET ALL SERVICES
     public List<CategoryResponse> getAllServices() {
         List<CategoryServiceDTO> services =
                 salonServiceRepository.fetchCategoryAndServices();
 
-        Map<String, Set<String>> grouped =
-                services.stream()
-                        .collect(Collectors.groupingBy(
-                                //dto -> dto.getCategoryName().trim(),
-                                dto -> dto.getCategoryName().trim().toLowerCase(),
-                                //Collectors.mapping(dto -> dto.getServiceName().trim(), Collectors.toSet())
-                                Collectors.mapping(
-                                        dto -> dto.getServiceName().trim().toLowerCase(),
-                                        Collectors.toSet()
-                                )
-                        ));
+        Map<String, Set<String>> grouped = services.stream()
+                .collect(Collectors.groupingBy(
+                        dto -> dto.getCategoryName().trim().toLowerCase(),
+                        Collectors.mapping(
+                                dto -> dto.getServiceName().trim().toLowerCase(),
+                                Collectors.toSet()
+                        )
+                ));
 
         return grouped.entrySet().stream()
                 .map(entry -> new CategoryResponse(
                         capitalize(entry.getKey()),
-                        //entry.getValue().stream().toList()
-                        entry.getValue().stream().map(this::capitalize).toList()
+                        entry.getValue().stream()
+                                .map(this::capitalize)
+                                .toList()
                 ))
                 .toList();
     }
 
     /**
      * Fetches a single service by its ID.
-     *
-     * @param serviceId the ID of the service
-     * @return the SalonService object
-     * @throws ResourceNotFoundException if service not found
      */
-    public SalonService getServiceById(Long serviceId) {
-        return salonServiceRepository.findById(serviceId)
-                .orElseThrow(() -> new ResourceNotFoundException("Service not found"));
+    // GET SERVICE BY ID
+    public SalonServiceResponse getServiceById(Long serviceId) {
+        SalonService service = salonServiceRepository.findById(serviceId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Service not found")
+                );
+
+        SalonServiceResponse dto = new SalonServiceResponse();
+        BeanUtils.copyProperties(service, dto);
+
+        return dto;
     }
 
     /**
      * Fetches services for a given salon and category.
-     *
-     * @param salonId the ID of the salon
-     * @param categoryId the ID of the category
-     * @return a list of SalonService for the salon and category
-     * @throws ResourceNotFoundException if salon or category not found
      */
-    public List<SalonService> getServicesByCategoryAndSalon(Long salonId, Long categoryId) {
+    // GET SERVICES BY CATEGORY AND SALON
+    public List<SalonServiceResponse> getServicesByCategoryAndSalon(Long salonId, Long categoryId) {
         salonRepository.findById(salonId)
                 .orElseThrow(() -> new ResourceNotFoundException("Salon not found"));
 
         categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
 
-        return salonServiceRepository.findBySalonIdAndCategoryId(
-                salonId,
-                categoryId
-        );
-    }
+        return salonServiceRepository
+                .findBySalonIdAndCategoryId(salonId, categoryId)
+                .stream()
+                .map(service -> {
+                    SalonServiceResponse dto = new SalonServiceResponse();
+                    BeanUtils.copyProperties(service, dto);
+
+                    return dto;
+                })
+                .toList();    }
 
     /**
      * Fetches paginated services for a given salon.
-     *
-     * @param salonId the ID of the salon
-     * @param pageNo the page number (0-based)
-     * @param pageSize the number of items per page
-     * @return a Page of SalonService
-     * @throws ResourceNotFoundException if salon not found
      */
-    public Page<SalonService> getServicesBySalon(Long salonId, int pageNo, int pageSize) {
+    // GET SERVICES BY SALON PAGINATION
+    public Page<SalonServiceResponse> getServicesBySalon(Long salonId, int pageNo, int pageSize) {
         salonRepository.findById(salonId)
                 .orElseThrow(() -> new ResourceNotFoundException("Salon not found"));
 
         Pageable pageable = PageRequest.of(pageNo, pageSize);
 
-        return salonServiceRepository.findBySalonId(salonId, pageable);
+        Page<SalonService> services = salonServiceRepository.findBySalonId(salonId, pageable);
+
+        return services.map(service -> {
+            SalonServiceResponse dto = new SalonServiceResponse();
+            BeanUtils.copyProperties(service, dto);
+            return dto;
+        });
     }
 
     /**
      * Helper method to capitalize each word in a string.
-     *
-     * @param str the input string
-     * @return the capitalized string
      */
     private String capitalize(String str) {
-        if (str == null || str.isEmpty()) return str;
+        if (str == null || str.isEmpty())
+            return str;
 
         return Arrays.stream(str.split(" "))
                 .map(word ->

@@ -1,11 +1,11 @@
-package org.backend.dto.auth.response;
+package org.backend.dto.response;
 
 import lombok.Builder;
 import lombok.Data;
 
 @Data
 @Builder
-public class RefreshTokenResponseDTO {
+public class RefreshTokenResponse {
     private String accessToken;
     private String refreshToken;
 }
