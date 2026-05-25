@@ -238,6 +238,9 @@ public class SalonServices {
      */
     // GET SERVICES BY SALON PAGINATION
     public Page<SalonServiceResponse> getServicesBySalon(Long salonId, int pageNo, int pageSize) {
+
+        validatePagination(pageNo, pageSize);
+
         salonRepository.findById(salonId)
                 .orElseThrow(() -> new ResourceNotFoundException("Salon not found"));
 
@@ -264,5 +267,16 @@ public class SalonServices {
                         word.substring(0, 1).toUpperCase() + word.substring(1)
                 )
                 .collect(Collectors.joining(" "));
+    }
+
+    private void validatePagination(int page, int size) {
+
+        if (page < 1) {
+            throw new BadRequestException("Page number must be >= 1");
+        }
+
+        if (size < 1 || size >= 100) {
+            throw new BadRequestException("Page size must be between 1 and 100");
+        }
     }
 }
