@@ -4,27 +4,22 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.backend.dto.booking.BookingRequestDTO;
 import org.backend.dto.booking.BookingResponseDTO;
-import org.backend.enums.BookingServiceStatus;
-import org.backend.enums.BookingSourceType;
-import org.backend.enums.BookingStatus;
-import org.backend.enums.PaymentMode;
-import org.backend.enums.PaymentStatus;
+import org.backend.enums.*;
 import org.backend.exception.BadRequestException;
 import org.backend.model.*;
+import org.backend.model.Package;
 import org.backend.repository.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
-import org.backend.model.Package;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -42,6 +37,9 @@ public class BookingService {
 
     @Value("${app.booking.payment-hold-minutes}")
     private int paymentHoldMinutes;
+
+    @Value("${app.booking.slot-interval-minutes}")
+    private int slotIntervalMinutes;
 
     /*
      * CREATE BOOKING
@@ -336,16 +334,26 @@ public class BookingService {
      */
     public List<String> getAvailableSlots(Long salonId, List<Long> serviceIds, LocalDate date) {
 
+        List<Long> uniqueServiceIds = serviceIds.stream().distinct().toList();
 
-        List<SalonService> services = serviceRepo.findAllById(serviceIds);
+        List<SalonService> services = serviceRepo.findAllById(uniqueServiceIds);
 
-        if (services.isEmpty()) {
-            throw new BadRequestException("Services not found");
+        if (services.size() != uniqueServiceIds.size()) {
+            throw new BadRequestException("One or more services are invalid");
         }
 
-        int totalDuration = services.stream()
-                .mapToInt(SalonService::getDurationMinutes)
-                .sum();
+        Map<Long, SalonService> serviceMap = services.stream()
+                .collect(Collectors.toMap(SalonService::getServiceId, Function.identity()));
+
+        int totalDuration = 0;
+
+        for (Long serviceId : serviceIds) {
+            SalonService service = serviceMap.get(serviceId);
+            if (service == null) {
+                throw new BadRequestException("Invalid service id: " + serviceId);
+            }
+            totalDuration += service.getDurationMinutes();
+        }
 
         SalonDetails salon = salonRepo.findById(salonId)
                 .orElseThrow(() -> new BadRequestException("Salon not found"));
@@ -374,12 +382,16 @@ public class BookingService {
         LocalDateTime slot = salon.getWorkingHoursStart().atDate(date);
         LocalDateTime closing = salon.getWorkingHoursEnd().atDate(date);
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mm a");
+        //12-hour format with AM/PM for better user readability on frontend
+        //DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mm a");
+
+        // 24-hour format for easier frontend handling and sorting
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
 
         while (!slot.plusMinutes(totalDuration).isAfter(closing)) {
 
             if (date.equals(LocalDate.now()) && slot.isBefore(LocalDateTime.now())) {
-                slot = slot.plusMinutes(15);
+                slot = slot.plusMinutes(slotIntervalMinutes);
                 continue;
             }
 
@@ -400,22 +412,231 @@ public class BookingService {
 
 
             // multi resource scenario - to be implemented when we have multiple resources per salon
-             long overlappingCount = bookings.stream()
-                     .filter(
-                    booking ->
-                            booking.getStartTime().isBefore(end) && booking.getEndTime().isAfter(currentSlot)
-                     ).count();
+            long overlappingCount = bookings.stream()
+                    .filter(
+                            booking ->
+                                    booking.getStartTime().isBefore(end) && booking.getEndTime().isAfter(currentSlot)
+                    ).count();
 
             if (overlappingCount < totalResources) {
                 availableSlots.add(currentSlot.toLocalTime().format(formatter));
             }
             // multi resource scenario end
 
-            slot = slot.plusMinutes(15);
+            slot = slot.plusMinutes(slotIntervalMinutes);
         }
 
         return availableSlots;
     }
+
+
+//public List<SlotResponse> getAvailableSlots(
+//        Long salonId,
+//        List<Long> serviceIds,
+//        LocalDate date
+//) {
+//
+//    List<SalonService> services = serviceRepo.findAllById(serviceIds);
+//
+//    if (services.isEmpty()) {
+//        throw new BadRequestException("Services not found");
+//    }
+//
+//    int totalDuration = services.stream()
+//            .mapToInt(SalonService::getDurationMinutes)
+//            .sum();
+//
+//    SalonDetails salon = salonRepo.findById(salonId)
+//            .orElseThrow(() -> new BadRequestException("Salon not found"));
+//
+//    SalonResource resource = salonResourceRepo.findBySalonId(salonId)
+//            .orElseThrow(() -> new BadRequestException("Salon resource config not found"));
+//
+//    int totalResources = resource.getResourceCount();
+//
+//    List<String> activeStatuses = List.of(
+//            BookingStatus.PENDING_PARTNER_CONFIRMATION.name(),
+//            BookingStatus.CONFIRMED.name(),
+//            BookingStatus.IN_PROGRESS.name()
+//    );
+//
+//    List<Booking> bookings = bookingRepo.findBookingsForDate(
+//            salonId,
+//            date.atStartOfDay(),
+//            date.plusDays(1).atStartOfDay(),
+//            activeStatuses,
+//            LocalDateTime.now().minusMinutes(paymentHoldMinutes)
+//    );
+//
+//    List<SlotResponse> slots = new ArrayList<>();
+//
+//    LocalDateTime slot = salon.getWorkingHoursStart().atDate(date);
+//    LocalDateTime closing = salon.getWorkingHoursEnd().atDate(date);
+//
+//    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mm a");
+//
+//    while (!slot.plusMinutes(totalDuration).isAfter(closing)) {
+//
+//        LocalDateTime currentSlot = slot;
+//        LocalDateTime end = currentSlot.plusMinutes(totalDuration);
+//
+//        String status = "AVAILABLE";
+//
+//        // Past slot
+//        if (date.equals(LocalDate.now())
+//                && currentSlot.isBefore(LocalDateTime.now())) {
+//
+//            status = "PAST";
+//
+//        } else {
+//
+//            long bookedCount = bookings.stream()
+//                    .filter(b ->
+//                            b.getStatus() != null &&
+//                                    !b.getStatus().equals("PAYMENT_PENDING") &&
+//                                    b.getStartTime().isBefore(end) &&
+//                                    b.getEndTime().isAfter(currentSlot)
+//                    )
+//                    .count();
+//
+//            long holdCount = bookings.stream()
+//                    .filter(b ->
+//                            "PAYMENT_PENDING".equals(b.getStatus()) &&
+//                                    b.getCreatedDate().isAfter(
+//                                            LocalDateTime.now().minusMinutes(paymentHoldMinutes)
+//                                    ) &&
+//                                    b.getStartTime().isBefore(end) &&
+//                                    b.getEndTime().isAfter(currentSlot)
+//                    )
+//                    .count();
+//
+//            if (bookedCount >= totalResources) {
+//                status = "BOOKED";
+//            } else if (holdCount >= totalResources) {
+//                status = "HOLD";
+//            }
+//        }
+//
+//        slots.add(new SlotResponse(currentSlot.toLocalTime().format(formatter), status));
+//
+//        slot = slot.plusMinutes(15);
+//    }
+//
+//    return slots;
+//}
+
+//public List<SlotResponse> getAvailableSlots(
+//        Long salonId,
+//        List<Long> serviceIds,
+//        LocalDate date
+//) {
+//
+//    List<SalonService> services = serviceRepo.findAllById(serviceIds);
+//
+//    if (services.isEmpty()) {
+//        throw new BadRequestException("Services not found");
+//    }
+//
+//    int totalDuration = services.stream()
+//            .mapToInt(SalonService::getDurationMinutes)
+//            .sum();
+//
+//    SalonDetails salon = salonRepo.findById(salonId)
+//            .orElseThrow(() -> new BadRequestException("Salon not found"));
+//
+//    SalonResource resource = salonResourceRepo.findBySalonId(salonId)
+//            .orElseThrow(() -> new BadRequestException("Salon resource config not found"));
+//
+//    int totalResources = resource.getResourceCount();
+//
+//    List<String> activeStatuses = List.of(
+//            BookingStatus.PENDING_PARTNER_CONFIRMATION.name(),
+//            BookingStatus.CONFIRMED.name(),
+//            BookingStatus.IN_PROGRESS.name()
+//    );
+//
+//    List<Booking> bookings = bookingRepo.findBookingsForDate(
+//            salonId,
+//            date.atStartOfDay(),
+//            date.plusDays(1).atStartOfDay(),
+//            activeStatuses,
+//            LocalDateTime.now().minusMinutes(paymentHoldMinutes)
+//    );
+//
+//    List<SlotResponse> slots = new ArrayList<>();
+//
+//    LocalDateTime slot = salon.getWorkingHoursStart().atDate(date);
+//    LocalDateTime closing = salon.getWorkingHoursEnd().atDate(date);
+//
+//    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("hh:mm a");
+//
+//    while (!slot.plusMinutes(totalDuration).isAfter(closing)) {
+//
+//        LocalDateTime currentSlot = slot;
+//        LocalDateTime end = currentSlot.plusMinutes(totalDuration);
+//
+//        String status = "AVAILABLE";
+//
+//        /*
+//         * PAST SLOT
+//         */
+//        if (date.equals(LocalDate.now())
+//                && currentSlot.isBefore(LocalDateTime.now())) {
+//
+//            status = "PAST";
+//
+//        } else {
+//
+//            /*
+//             * FULL BOOKINGS
+//             */
+//            long bookedCount = bookings.stream()
+//                    .filter(b ->
+//                            b.getStatus() != null &&
+//                                    !BookingStatus.PAYMENT_PENDING.name().equals(b.getStatus()) &&
+//                                    b.getStartTime().isBefore(end) &&
+//                                    b.getEndTime().isAfter(currentSlot)
+//                    )
+//                    .count();
+//
+//            /*
+//             * TEMP HOLD BOOKINGS
+//             */
+//            long holdCount = bookings.stream()
+//                    .filter(b ->
+//                            BookingStatus.PAYMENT_PENDING.name().equals(b.getStatus()) &&
+//                                    b.getCreatedDate().isAfter(
+//                                            LocalDateTime.now().minusMinutes(paymentHoldMinutes)
+//                                    ) &&
+//                                    b.getStartTime().isBefore(end) &&
+//                                    b.getEndTime().isAfter(currentSlot)
+//                    )
+//                    .count();
+//
+//            /*
+//             * SLOT STATUS DECISION
+//             */
+//            if (bookedCount >= totalResources) {
+//                status = "BOOKED";
+//            } else if ((bookedCount + holdCount) >= totalResources) {
+//                status = "HOLD";
+//            } else {
+//                status = "AVAILABLE";
+//            }
+//        }
+//
+//        slots.add(
+//                new SlotResponse(
+//                        currentSlot.toLocalTime().format(formatter),
+//                        status
+//                )
+//        );
+//
+//        slot = slot.plusMinutes(30);
+//    }
+//
+//    return slots;
+//}
 
     /*
      * HELPERS
@@ -493,7 +714,7 @@ public class BookingService {
 
         BigDecimal platformFee =
                 gross.compareTo(BigDecimal.ZERO) > 0
-                        ? BigDecimal.valueOf(15)
+                        ? BigDecimal.valueOf(30)
                         : BigDecimal.ZERO;
 
         BigDecimal discount = BigDecimal.ZERO;

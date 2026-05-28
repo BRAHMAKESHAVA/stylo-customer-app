@@ -22,7 +22,6 @@ public class PaymentController {
     private final PaymentService paymentService;
     private final BookingRepository bookingRepo;
 
-
     // CREATE ORDER
     @PostMapping("/order/{bookingId}")
     public RazorpayOrderResponseDTO createOrder(@PathVariable Long bookingId) {
@@ -39,7 +38,9 @@ public class PaymentController {
     // REFUND PAYMENT
     @PostMapping("/refund/{bookingId}")
     public String refund(@PathVariable Long bookingId, @RequestParam String reason) {
+
         paymentService.refundPayment(bookingId, reason);
+
         Booking booking = bookingRepo.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
 

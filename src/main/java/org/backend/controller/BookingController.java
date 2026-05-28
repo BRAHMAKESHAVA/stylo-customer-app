@@ -5,7 +5,9 @@ import org.backend.dto.booking.BookingRequestDTO;
 import org.backend.dto.booking.BookingResponseDTO;
 import org.backend.dto.common.ApiResponseDTO;
 import org.backend.dto.request.AvailableSlotsRequest;
+import org.backend.dto.response.SlotResponse;
 import org.backend.service.BookingService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -39,13 +41,33 @@ public class BookingController {
     }
 
     @PostMapping("/available-slots")
-    public List<String> getAvailableSlots(@RequestBody AvailableSlotsRequest request) {
-        return bookingService.getAvailableSlots(
+    public ResponseEntity<ApiResponseDTO<List<String>>> getAvailableSlots(
+            @RequestBody AvailableSlotsRequest request) {
+
+        List<String> slots = bookingService.getAvailableSlots(
                 request.getSalonId(),
                 request.getServiceIds(),
                 request.getDate()
         );
+
+        return ResponseEntity.ok(
+                ApiResponseDTO.<List<String>>builder()
+                        .status(true)
+                        .message("Available slots fetched successfully")
+                        .data(slots)
+                        .build()
+        );
     }
+
+
+//    @PostMapping("/available-slots")
+//    public List<SlotResponse> getAvailableSlots(@RequestBody AvailableSlotsRequest request) {
+//        return bookingService.getAvailableSlots(
+//                request.getSalonId(),
+//                request.getServiceIds(),
+//                request.getDate()
+//        );
+//    }
 
     @PutMapping("/cancel/{bookingId}")
     public String cancelBooking(@PathVariable Long bookingId) {

@@ -51,11 +51,11 @@ public class SecurityConfig {
                 .sessionManagement(sessionConfig -> sessionConfig
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/user/register").permitAll()
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers("/auth/login/**").permitAll()
-                        .requestMatchers("/user/**","/api/customer-address/**").hasAnyRole("CUSTOMER","ADMIN", "CAPTAIN", "PARTNER")
-                        .anyRequest().authenticated() //authenticated()permitAll()denyAll
+                        //.requestMatchers(HttpMethod.POST, "/user/register").permitAll()
+                        //.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        //.requestMatchers("/auth/login/**").permitAll()
+                        //.requestMatchers("/user/**","/api/customer-address/**").hasAnyRole("CUSTOMER","ADMIN", "CAPTAIN", "PARTNER")
+                        .anyRequest().permitAll() //authenticated()permitAll()denyAll
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(exception -> exception
