@@ -31,7 +31,8 @@ public interface AddressRepository extends JpaRepository<Address, Long> {
     @Query("UPDATE Address a SET a.isSelected = false WHERE a.customerId = :customerId AND a.isSelected = true")
     void resetSelectedForCustomer(Long customerId);
 
-    @Modifying @Query("UPDATE Address a SET a.isDefault = false WHERE a.customerId = :customerId AND a.addressId <> :addressId")
+    @Modifying
+    @Query("UPDATE Address a SET a.isDefault = false WHERE a.customerId = :customerId AND a.addressId <> :addressId")
     void resetDefaultForCustomer(Long customerId, Long addressId);
 
     @Modifying
@@ -46,40 +47,41 @@ public interface AddressRepository extends JpaRepository<Address, Long> {
     // Check if HOME/WORK exists excluding current address during update
     boolean existsByCustomerIdAndAddressTypeAndAddressIdNot(Long customerId, AddressType addressType, Long addressId);
 
-    // Custom query to find nearby addresses using Haversine formula
     @Query(value = """
-    SELECT
-        a.address_id AS addressId,
-        a.customer_id AS customerId,
-        a.customer_name AS customerName,
-        a.house_number AS houseNumber,
-        a.building AS buildingName,
-        a.area AS area,
-        a.landmark AS landmark,
-        a.city AS city,
-        a.state AS state,
-        a.pin_code AS pinCode,
-        a.latitude AS latitude,
-        a.longitude AS longitude,
-
-        (
-            6371 * acos(
-                cos(radians(:latitude))
-                * cos(radians(a.latitude))
-                * cos(radians(a.longitude) - radians(:longitude))
-                + sin(radians(:latitude))
-                * sin(radians(a.latitude))
-            )
-        ) AS distanceKm
-
-    FROM address a
-    WHERE a.customer_id = :customerId
-      AND a.latitude BETWEEN :minLat AND :maxLat
-      AND a.longitude BETWEEN :minLon AND :maxLon
-
-    HAVING distanceKm <= :distanceKm
-    ORDER BY distanceKm
-    """,
+            SELECT *
+            FROM (
+                SELECT
+                    a.address_id AS addressId,
+                    a.customer_id AS customerId,
+                    a.customer_name AS customerName,
+                    a.house_number AS houseNumber,
+                    a.building AS buildingName,
+                    a.area AS area,
+                    a.landmark AS landmark,
+                    a.city AS city,
+                    a.state AS state,
+                    a.pin_code AS pinCode,
+                    a.latitude AS latitude,
+                    a.longitude AS longitude,
+            
+                    (
+                        6371 * acos(
+                            cos(radians(:latitude))
+                            * cos(radians(a.latitude))
+                            * cos(radians(a.longitude) - radians(:longitude))
+                            + sin(radians(:latitude))
+                            * sin(radians(a.latitude))
+                        )
+                    ) AS distanceKm
+            
+                FROM address a
+                WHERE a.customer_id = :customerId
+                  AND a.latitude BETWEEN :minLat AND :maxLat
+                  AND a.longitude BETWEEN :minLon AND :maxLon
+            ) x
+            WHERE x.distanceKm <= :distanceKm
+            ORDER BY x.distanceKm
+            """,
             nativeQuery = true)
     List<NearbyAddressProjection> findNearbyAddresses(
             @Param("customerId") Long customerId,
