@@ -2,8 +2,9 @@ package org.backend.controller;
 
 import com.razorpay.RazorpayException;
 import lombok.RequiredArgsConstructor;
-import org.backend.dto.RazorpayOrderResponseDTO;
-import org.backend.dto.RazorpayVerifyPaymentRequestDTO;
+import org.backend.dto.common.ApiResponseDTO;
+import org.backend.dto.request.RazorpayVerifyPaymentRequestDTO;
+import org.backend.dto.response.RazorpayOrderResponseDTO;
 import org.backend.enums.BookingStatus;
 import org.backend.exception.ResourceNotFoundException;
 import org.backend.model.Booking;
@@ -12,6 +13,7 @@ import org.backend.service.PaymentService;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/payments")
@@ -22,10 +24,53 @@ public class PaymentController {
     private final PaymentService paymentService;
     private final BookingRepository bookingRepo;
 
-    // CREATE ORDER
+    /**
+     * SELECT PAYMENT MODE
+     * POST /api/payments/{bookingId}/select-mode
+     * Body: { "paymentMode": "ONLINE" }  or  { "paymentMode": "PAY_AT_SALON" }
+     *
+     * Called from payment screen after booking is created.
+     * - PAY_AT_SALON → booking moves to PENDING_PARTNER_CONFIRMATION immediately
+     * - ONLINE       → booking stays PAYMENT_PENDING, then call /create-order next
+     */
+//    @PostMapping("/{bookingId}/select-mode")
+//    public ApiResponseDTO<Void> selectPaymentMode(
+//            @PathVariable Long bookingId,
+//            @RequestBody Map<String, String> body
+//    ) {
+//        paymentService.selectPaymentMode(bookingId, body.get("paymentMode"));
+//
+//        return ApiResponseDTO.<Void>builder()
+//                .status(true)
+//                .message("Payment mode selected successfully")
+//                .data(null)
+//                .build();
+//    }
+
+    // Pay at Salon — Proceed with booking confirmation, partner approval, then pay at salon
+    @PostMapping("/{bookingId}/confirm-pay-at-salon")
+    public ApiResponseDTO<Void> confirmPayAtSalon(@PathVariable Long bookingId) {
+
+        paymentService.confirmPayAtSalon(bookingId);
+
+        return ApiResponseDTO.<Void>builder()
+                .status(true)
+                .message("Booking confirmed. Pay at salon after partner approval.")
+                .data(null)
+                .build();
+    }
+
+    // CREATE ORDER-Online
     @PostMapping("/order/{bookingId}")
-    public RazorpayOrderResponseDTO createOrder(@PathVariable Long bookingId) {
-        return paymentService.createOrder(bookingId);
+    public ApiResponseDTO<RazorpayOrderResponseDTO> createOrder(@PathVariable Long bookingId) {
+
+        RazorpayOrderResponseDTO response = paymentService.createOrder(bookingId);
+
+        return ApiResponseDTO.<RazorpayOrderResponseDTO>builder()
+                .status(true)
+                .message("Order created successfully")
+                .data(response)
+                .build();
     }
 
     // VERIFY PAYMENT

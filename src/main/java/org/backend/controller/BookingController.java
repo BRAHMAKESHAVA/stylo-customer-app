@@ -5,7 +5,8 @@ import org.backend.dto.booking.BookingRequestDTO;
 import org.backend.dto.booking.BookingResponseDTO;
 import org.backend.dto.common.ApiResponseDTO;
 import org.backend.dto.request.AvailableSlotsRequest;
-import org.backend.dto.response.SlotResponse;
+import org.backend.dto.request.PriceSummaryRequestDTO;
+import org.backend.dto.response.SlotResponseDTO;
 import org.backend.service.BookingService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,9 +21,8 @@ public class BookingController {
 
     private final BookingService bookingService;
 
-
     // CREATE BOOKING
-    @PostMapping
+    @PostMapping("/create-booking")
     public BookingResponseDTO createBooking(@RequestBody BookingRequestDTO bookingReq) {
         return bookingService.createBooking(bookingReq);
     }
@@ -31,47 +31,73 @@ public class BookingController {
     @GetMapping("/customer/{customerId}")
     public ApiResponseDTO<List<BookingResponseDTO>> getUserBookings(@PathVariable Long customerId) {
 
-        List<BookingResponseDTO> bookings = bookingService.getCustomerBookings(customerId);
-
         return ApiResponseDTO.<List<BookingResponseDTO>>builder()
                 .status(true)
                 .message("Bookings fetched successfully")
-                .data(bookings)
+                .data(bookingService.getCustomerBookings(customerId))
                 .build();
     }
 
-    @PostMapping("/available-slots")
-    public ResponseEntity<ApiResponseDTO<List<String>>> getAvailableSlots(
-            @RequestBody AvailableSlotsRequest request) {
+//    @PostMapping("/available-slots")
+//    public ResponseEntity<ApiResponseDTO<List<String>>> getAvailableSlots(
+//            @RequestBody AvailableSlotsRequest request) {
+//
+//        List<String> slots = bookingService.getAvailableSlots(
+//                request.getSalonId(),
+//                request.getServiceIds(),
+//                request.getDate()
+//        );
+//
+//        return ResponseEntity.ok(
+//                ApiResponseDTO.<List<String>>builder()
+//                        .status(true)
+//                        .message("Available slots fetched successfully")
+//                        .data(slots)
+//                        .build()
+//        );
+//    }
 
-        List<String> slots = bookingService.getAvailableSlots(
+    @PostMapping("/available-slots")
+    public ResponseEntity<ApiResponseDTO<List<SlotResponseDTO>>> getAvailableSlots(
+            @RequestBody AvailableSlotsRequest request
+    ) {
+        List<SlotResponseDTO> slots = bookingService.getAvailableSlots(
                 request.getSalonId(),
                 request.getServiceIds(),
                 request.getDate()
         );
 
         return ResponseEntity.ok(
-                ApiResponseDTO.<List<String>>builder()
+                ApiResponseDTO.<List<SlotResponseDTO>>builder()
                         .status(true)
-                        .message("Available slots fetched successfully")
+                        .message("Slots fetched successfully")
                         .data(slots)
                         .build()
         );
     }
 
-
-//    @PostMapping("/available-slots")
-//    public List<SlotResponse> getAvailableSlots(@RequestBody AvailableSlotsRequest request) {
-//        return bookingService.getAvailableSlots(
-//                request.getSalonId(),
-//                request.getServiceIds(),
-//                request.getDate()
-//        );
-//    }
-
     @PutMapping("/cancel/{bookingId}")
-    public String cancelBooking(@PathVariable Long bookingId) {
+    public ResponseEntity<ApiResponseDTO<Void>> cancelBooking(@PathVariable Long bookingId) {
         bookingService.cancelBooking(bookingId);
-        return "Booking cancelled successfully";
+        return ResponseEntity.ok(
+                ApiResponseDTO.<Void>builder()
+                        .status(true)
+                        .message("Booking cancelled successfully")
+                        .build()
+        );
     }
+
+    @PostMapping("/price-summary")
+    public ApiResponseDTO<BookingResponseDTO> getPriceSummary(
+            @RequestBody PriceSummaryRequestDTO request) {
+
+        BookingResponseDTO response = bookingService.getPriceSummary(request);
+
+        return ApiResponseDTO.<BookingResponseDTO>builder()
+                .status(true)
+                .message("Price summary fetched successfully")
+                .data(response)
+                .build();
+    }
+
 }

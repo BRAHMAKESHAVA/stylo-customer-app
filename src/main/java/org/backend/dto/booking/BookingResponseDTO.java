@@ -18,6 +18,8 @@ public class BookingResponseDTO {
 
     private BigDecimal grossAmount;
     private BigDecimal platformFee;
+    private BigDecimal commissionAmount;
+    private BigDecimal taxAmount;
     private BigDecimal discountAmount;
     private BigDecimal finalAmount;
 
@@ -57,5 +59,22 @@ public class BookingResponseDTO {
         this.startTime = startTime;
         this.endTime = endTime;
         this.totalDuration = totalDuration;
+    }
+
+    //pricing summary
+    public BookingResponseDTO(
+            BigDecimal grossAmount,
+            BigDecimal platformFee,
+            BigDecimal commissionAmount,
+            BigDecimal discountAmount,
+            BigDecimal taxAmount,
+            BigDecimal finalAmount
+    ) {
+        this.grossAmount = grossAmount;
+        this.platformFee = platformFee;
+        this.commissionAmount = commissionAmount;
+        this.discountAmount = discountAmount;
+        this.taxAmount = taxAmount;
+        this.finalAmount = finalAmount;
     }
 }

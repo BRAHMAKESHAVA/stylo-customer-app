@@ -1,5 +1,4 @@
-package org.backend.dto;
-
+package org.backend.dto.request;
 import lombok.Data;
 
 @Data

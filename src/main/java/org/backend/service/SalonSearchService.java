@@ -362,6 +362,7 @@ public class SalonSearchService {
                 minLat, maxLat, minLon, maxLon, distanceKm);
     }
 
+   // Get popular salons based on the number of bookings or ratings within a specified distance from the user's location
     public List<SalonDetailsDTO> getPopularSalons(
             double latitude,
             double longitude,

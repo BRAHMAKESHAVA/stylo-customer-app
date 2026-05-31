@@ -1,6 +1,7 @@
 package org.backend.exception;
 
 import io.jsonwebtoken.JwtException;
+import jakarta.validation.ConstraintViolationException;
 import org.backend.dto.common.ErrorResponseDTO;
 import org.backend.dto.common.FieldValidationError;
 import org.slf4j.Logger;
@@ -11,8 +12,10 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
@@ -192,6 +195,75 @@ public class GlobalExceptionHandler {
 
         return new ResponseEntity<>(response,HttpStatus.BAD_REQUEST);
     }
+
+    @ExceptionHandler(PaymentGatewayException.class)
+    public ResponseEntity<ErrorResponseDTO> handlePaymentGatewayException(PaymentGatewayException ex) {
+        log.error("Payment gateway error | Error: {}", ex.getMessage(), ex);
+
+        ErrorResponseDTO error = build(
+                HttpStatus.BAD_GATEWAY,
+                "PAYMENT_GATEWAY_ERROR",
+                ex.getMessage()
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(error);
+    }
+
+    @ExceptionHandler(SignatureGenerationException.class)
+    public ResponseEntity<ErrorResponseDTO> handleSignatureGenerationException(
+            SignatureGenerationException ex) {
+
+        log.error("Signature generation failed | Error: {}", ex.getMessage(), ex);
+
+        ErrorResponseDTO error = build(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "SIGNATURE_GENERATION_ERROR",
+                ex.getMessage()
+        );
+
+        return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponseDTO> handleMissingParameter(MissingServletRequestParameterException ex) {
+        log.warn("Missing request parameter: {}", ex.getParameterName());
+
+        ErrorResponseDTO error = build(
+                HttpStatus.BAD_REQUEST,
+                "MISSING_REQUEST_PARAMETER",
+                String.format("Parameter '%s' is required", ex.getParameterName())
+        );
+
+        return ResponseEntity.badRequest().body(error);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponseDTO> handleConstraintViolation(ConstraintViolationException ex) {
+        log.warn("Validation failed: {}", ex.getMessage());
+
+        ErrorResponseDTO error = build(
+                HttpStatus.BAD_REQUEST,
+                "VALIDATION_FAILED",
+                ex.getMessage()
+        );
+
+        return ResponseEntity.badRequest().body(error);
+    }
+
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<ErrorResponseDTO> handleValidationException(HandlerMethodValidationException ex) {
+        log.warn("Validation failed: {}", ex.getMessage());
+
+        ErrorResponseDTO error = build(
+                HttpStatus.BAD_REQUEST,
+                "VALIDATION_FAILED",
+                ex.getMessage()
+        );
+
+        return ResponseEntity.badRequest().body(error);
+    }
+
+
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponseDTO> handleGlobal(Exception ex) {

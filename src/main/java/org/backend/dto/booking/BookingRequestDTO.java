@@ -13,6 +13,6 @@ public class BookingRequestDTO {
     private List<Long> serviceIds;
     private LocalDateTime startTime;
     //private LocalDateTime endTime;
-    private String paymentMode; // ONLINE / PAY_AT_SALON
+    //private String paymentMode; // ONLINE / PAY_AT_SALON
 
 }

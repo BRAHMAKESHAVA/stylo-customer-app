@@ -9,6 +9,7 @@ import org.backend.enums.AddressType;
 import org.backend.exception.BadRequestException;
 import org.backend.exception.ResourceNotFoundException;
 import org.backend.model.Address;
+import org.backend.projection.NearbyAddressProjection;
 import org.backend.repository.AddressRepository;
 import org.backend.repository.CustomerRepository;
 import org.springframework.beans.BeanUtils;
@@ -259,5 +260,68 @@ public class AddressService {
         if (exists) {
             throw new BadRequestException(String.format("Only one %s address is allowed per customer", addressType));
         }
+    }
+
+    /**
+     * Retrieves nearby addresses based on provided latitude and longitude.
+     * Uses a simple bounding box approach to find addresses within a 1 km radius.
+     *
+     * @param latitude the latitude of the location
+     * @param longitude the longitude of the location
+     * @return list of nearby addresses with distance information
+     */
+    public List<AddressResponse> getNearbyAddresses(
+            Long customerId,
+            double latitude,
+            double longitude) {
+
+        if (!customerRepository.existsByCustomerId(customerId))
+            throw new ResourceNotFoundException("Customer not found with ID: " + customerId);
+
+        double radiusKm = 1.0;
+
+        double latDelta = radiusKm / 111.0;
+        double lonDelta = radiusKm /
+                (111.0 * Math.cos(Math.toRadians(latitude)));
+
+        double minLat = latitude - latDelta;
+        double maxLat = latitude + latDelta;
+
+        double minLon = longitude - lonDelta;
+        double maxLon = longitude + lonDelta;
+
+        List<NearbyAddressProjection> addresses =
+                addressRepository.findNearbyAddresses(
+                        customerId,
+                        latitude,
+                        longitude,
+                        minLat,
+                        maxLat,
+                        minLon,
+                        maxLon,
+                        radiusKm
+                );
+
+        return addresses.stream()
+                .map(a -> AddressResponse.builder()
+                        .addressId(a.getAddressId())
+                        .customerId(a.getCustomerId())
+                        .customerName(a.getCustomerName())
+                        .houseNumber(a.getHouseNumber())
+                        .buildingName(a.getBuildingName())
+                        .area(a.getArea())
+                        .landmark(a.getLandmark())
+                        .city(a.getCity())
+                        .state(a.getState())
+                        .pinCode(a.getPinCode())
+                        .latitude(a.getLatitude())
+                        .longitude(a.getLongitude())
+                        .distance(
+                                Math.round(a.getDistanceKm() * 100.0) / 100.0
+                        )
+                        .build())
+                .toList();
+
+
     }
 }

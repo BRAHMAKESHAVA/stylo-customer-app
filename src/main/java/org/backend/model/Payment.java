@@ -35,6 +35,9 @@ public class Payment {
     @Column(name = "provider", nullable = false, length = 30)
     private String provider;
 
+    @Column(name = "payment_method", length = 30)
+    private String paymentMethod;
+
     @Column(name = "provider_order_id", length = 100)
     private String providerOrderId;
 

@@ -4,15 +4,19 @@ import com.razorpay.Order;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
 import com.razorpay.Refund;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.backend.dto.RazorpayOrderResponseDTO;
-import org.backend.dto.RazorpayVerifyPaymentRequestDTO;
 import org.backend.dto.RefundResultDTO;
+import org.backend.dto.request.RazorpayVerifyPaymentRequestDTO;
+import org.backend.dto.response.RazorpayOrderResponseDTO;
 import org.backend.enums.BookingStatus;
+import org.backend.enums.PaymentMode;
 import org.backend.enums.PaymentStatus;
 import org.backend.exception.BadRequestException;
+import org.backend.exception.PaymentGatewayException;
 import org.backend.exception.ResourceNotFoundException;
+import org.backend.exception.SignatureGenerationException;
 import org.backend.model.Booking;
 import org.backend.model.Payment;
 import org.backend.model.PaymentRefund;
@@ -28,8 +32,11 @@ import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -51,50 +58,146 @@ public class PaymentService {
     @Value("${razorpay.key-secret}")
     private String keySecret;
 
-    /*
-     * CREATE RAZORPAY ORDER
+    /**
+     * SELECT PAYMENT MODE
+     *
+     * Called from the payment screen after booking is created.
+     * This is where the payment record is first created.
+     *
+     * PAY_AT_SALON → payment record created, booking moves to PENDING_PARTNER_CONFIRMATION
+     * ONLINE       → payment record created, booking stays PAYMENT_PENDING for Razorpay to complete
      */
+//    public void selectPaymentMode(Long bookingId, String paymentModeStr) {
+//
+//        PaymentMode paymentMode;
+//        try {
+//            paymentMode = PaymentMode.valueOf(paymentModeStr.toUpperCase());
+//        } catch (IllegalArgumentException e) {
+//            throw new BadRequestException("Invalid payment mode. Allowed: ONLINE, PAY_AT_SALON");
+//        }
+//
+//        Booking booking = bookingRepo.findById(bookingId)
+//                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+//
+//        // only PAYMENT_PENDING bookings can select a mode
+//        if (!BookingStatus.PAYMENT_PENDING.name().equals(booking.getStatus())) {
+//            throw new BadRequestException(
+//                    "Payment mode can only be selected for bookings awaiting payment");
+//        }
+//
+//        // guard against expired hold window
+//        if (booking.getCreatedDate()
+//                .isBefore(LocalDateTime.now().minusMinutes(paymentHoldMinutes))) {
+//            throw new BadRequestException("Booking hold has expired. Please rebook.");
+//        }
+//
+//        // idempotency — payment record already exists means mode was already selected
+//        if (paymentRepo.findByBookingId(bookingId).isPresent()) {
+//            throw new BadRequestException(
+//                    "Payment mode already selected for this booking. Proceed to payment.");
+//        }
+//
+//        Payment payment = paymentRepo.findByBookingId(bookingId)
+//                .orElseGet(() -> Payment.builder()
+//                        .bookingId(bookingId)
+//                        .amount(booking.getFinalAmount())
+//                        .currency("INR")
+//                        .status(PaymentStatus.PENDING.name())
+//                        .build());
+//
+//        if (paymentMode == PaymentMode.PAY_AT_SALON) {
+//
+//            /*
+//             * OFFLINE FLOW
+//             * Create payment record and immediately advance booking —
+//             * no Razorpay involved, partner confirms on their end.
+//             */
+//            payment.setProvider("PAY_AT_SALON");
+//            payment.setAmount(booking.getFinalAmount());
+//            payment.setStatus(PaymentStatus.PENDING.name());
+//
+//            paymentRepo.save(payment);
+//
+//            booking.setStatus(BookingStatus.PENDING_PARTNER_CONFIRMATION.name());
+//            booking.setUpdatedDate(LocalDateTime.now());
+//            bookingRepo.save(booking);
+//
+//        } else {
+//
+//            /*
+//             * ONLINE FLOW
+//             * Create payment record only — booking stays PAYMENT_PENDING
+//             * until Razorpay order is created and payment is verified.
+//             */
+//            payment.setProvider("RAZORPAY");
+//            payment.setAmount(booking.getFinalAmount());
+//            payment.setStatus(PaymentStatus.PENDING.name());
+//
+//            paymentRepo.save(payment);
+//        }
+//    }
+
+    /**
+     * CONFIRM PAY AT SALON
+     * Called when user clicks Proceed with Pay at Salon selected.
+     * Creates payment record and moves booking to PENDING_PARTNER_CONFIRMATION.
+     */
+    public void confirmPayAtSalon(Long bookingId) {
+
+        Booking booking = bookingRepo.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+
+        if (booking.getCreatedDate()
+                .isBefore(LocalDateTime.now().minusMinutes(paymentHoldMinutes))) {
+            throw new BadRequestException("Booking hold has expired. Please rebook.");
+        }
+
+        Payment payment = Payment.builder()
+                .bookingId(bookingId)
+                .amount(booking.getFinalAmount())
+                .currency("INR")
+                .status(PaymentStatus.PENDING.name())
+                .provider("PAY_AT_SALON") //OFFLINE
+                .build();
+
+        paymentRepo.save(payment);
+
+        booking.setStatus(BookingStatus.PENDING_PARTNER_CONFIRMATION.name());
+        booking.setUpdatedDate(LocalDateTime.now());
+        bookingRepo.save(booking);
+    }
+
+    /**
+     * Creates a Razorpay order for a given booking.
+     * Validates booking/payment, ensures Razorpay provider, and prevents duplicate payments.
+     *
+     * @param bookingId the booking identifier
+     * @return RazorpayOrderResponseDTO containing order details
+     */
+    @Transactional
     public RazorpayOrderResponseDTO createOrder(Long bookingId) {
+        Booking booking = bookingRepo.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + bookingId));
+
+        Payment payment = paymentRepo.findByBookingId(bookingId).orElse(null);
+
+        if (payment != null && PaymentStatus.SUCCESS.name().equals(payment.getStatus())) {
+            throw new BadRequestException("Payment already completed for booking: " + bookingId);
+        }
+
+        if (payment != null && payment.getProviderOrderId() != null &&
+                PaymentStatus.INITIATED.name().equals(payment.getStatus())) {
+            return new RazorpayOrderResponseDTO(
+                    keyId,
+                    payment.getProviderOrderId(),
+                    booking.getFinalAmount().multiply(BigDecimal.valueOf(100)).longValue(),
+                    "INR"
+            );
+        }
 
         try {
-            Booking booking = bookingRepo.findById(bookingId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
-
-            Payment payment = paymentRepo.findByBookingId(bookingId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
-
-            // allow Razorpay only for ONLINE bookings
-            if (!"RAZORPAY".equalsIgnoreCase(payment.getProvider())) {
-                throw new BadRequestException("Razorpay order allowed only for ONLINE payments");
-            }
-
-            // prevent duplicate payment after success
-            if (PaymentStatus.SUCCESS.name().equals(payment.getStatus())) {
-                throw new BadRequestException("Payment already completed");
-            }
-
-//            // Auto-expire abandoned payment holds older than 10 minutes
-//            if (BookingStatus.PAYMENT_PENDING.name().equals(booking.getStatus())
-//                    && booking.getCreatedDate().isBefore(
-//                    LocalDateTime.now().minusMinutes(paymentHoldMinutes)
-//            )) {
-//
-//                booking.setStatus(BookingStatus.PAYMENT_FAILED.name());
-//                booking.setUpdatedDate(LocalDateTime.now());
-//                bookingRepo.save(booking);
-//
-//                payment.setStatus(PaymentStatus.FAILED.name());
-//                payment.setUpdatedDate(LocalDateTime.now());
-//                paymentRepo.save(payment);
-//
-//                throw new BadRequestException("Payment session expired. Please rebook.");
-//            }
-
             RazorpayClient client = new RazorpayClient(keyId, keySecret);
-
-            long amountInPaise = booking.getFinalAmount()
-                    .multiply(BigDecimal.valueOf(100))
-                    .longValue();
+            long amountInPaise = booking.getFinalAmount().multiply(BigDecimal.valueOf(100)).longValue();
 
             JSONObject options = new JSONObject();
             options.put("amount", amountInPaise);
@@ -103,15 +206,28 @@ public class PaymentService {
 
             JSONObject notes = new JSONObject();
             notes.put("bookingId", bookingId);
-
             options.put("notes", notes);
 
             Order order = client.orders.create(options);
 
-            // Track created Razorpay order for verification/webhook mapping
-            payment.setProviderOrderId(order.get("id").toString());
-            payment.setStatus(PaymentStatus.INITIATED.name());
-            payment.setUpdatedDate(LocalDateTime.now());
+            if (payment == null) {
+                payment = Payment.builder()
+                        .bookingId(bookingId)
+                        .amount(booking.getFinalAmount())
+                        .currency("INR")
+                        .provider("RAZORPAY")
+                        .status(PaymentStatus.INITIATED.name())
+                        .providerOrderId(order.get("id").toString())
+                        .build();
+            } else {
+                // Retry payment
+                payment.setProvider("RAZORPAY");
+                payment.setProviderOrderId(order.get("id").toString());
+                payment.setProviderPaymentId(null);
+                payment.setProviderSignature(null);
+                payment.setStatus(PaymentStatus.INITIATED.name());
+
+            }
 
             paymentRepo.save(payment);
 
@@ -122,21 +238,25 @@ public class PaymentService {
                     order.get("currency").toString()
             );
 
-        } catch (Exception e) {
-            throw new RuntimeException(
-                    "Error creating Razorpay order",
-                    e
-            );
+        } catch (RazorpayException e) {
+            log.error("Error creating Razorpay order | bookingId={}", bookingId, e);
+            throw new PaymentGatewayException("Error creating Razorpay order for booking: " + bookingId, e);
         }
     }
 
-    /*
-     * VERIFY PAYMENT
+    /**
+     * Verifies a Razorpay payment for a booking.
+     * - Ensures idempotency, provider validation, signature, and amount checks.
+     * - Updates booking and payment status accordingly.
+     *
+     * @param bookingId the booking identifier
+     * @param dto the Razorpay verification request payload
+     * @throws RazorpayException if Razorpay API call fails
      */
+    @Transactional
     public void verifyPayment(Long bookingId, RazorpayVerifyPaymentRequestDTO dto) throws RazorpayException {
-
-        // Idempotency protection against duplicate verify calls
         if (paymentRepo.existsByProviderPaymentId(dto.getRazorpayPaymentId())) {
+            log.info("Payment already verified | bookingId={}, paymentId={}", bookingId, dto.getRazorpayPaymentId());
             return;
         }
 
@@ -151,19 +271,18 @@ public class PaymentService {
         }
 
         RazorpayClient razorpay = new RazorpayClient(keyId, keySecret);
-
         com.razorpay.Payment razorpayPayment = razorpay.payments.fetch(dto.getRazorpayPaymentId());
 
         String orderId = razorpayPayment.get("order_id").toString();
+        String paymentStatus = razorpayPayment.get("status");
+
 
         if (!orderId.equals(dto.getRazorpayOrderId())) {
             throw new BadRequestException("Payment does not belong to provided order");
         }
 
-        String paymentStatus = razorpayPayment.get("status");
-
-        // Mark failed payment and release slot immediately
         if (!"captured".equalsIgnoreCase(paymentStatus)) {
+            log.warn("Payment failed | bookingId={}, status={}", bookingId, paymentStatus);
             payment.setStatus(PaymentStatus.FAILED.name());
             payment.setUpdatedDate(LocalDateTime.now());
             paymentRepo.save(payment);
@@ -174,121 +293,123 @@ public class PaymentService {
             throw new BadRequestException("Payment not captured");
         }
 
+        // Signature verification
         String payload = dto.getRazorpayOrderId() + "|" + dto.getRazorpayPaymentId();
-
         String expectedSignature = hmacSHA256(payload, keySecret);
-
         if (!MessageDigest.isEqual(
                 expectedSignature.getBytes(StandardCharsets.UTF_8),
-                dto.getRazorpaySignature().getBytes(StandardCharsets.UTF_8)
-        )) {
+                dto.getRazorpaySignature().getBytes(StandardCharsets.UTF_8))) {
+            log.error("Signature verification failed | bookingId={}", bookingId);
             throw new BadRequestException("Signature verification failed");
         }
 
-        long expectedAmount = booking.getFinalAmount()
-                .multiply(BigDecimal.valueOf(100))
-                .longValue();
-
+        // Amount verification
+        long expectedAmount = booking.getFinalAmount().multiply(BigDecimal.valueOf(100)).longValue();
         long actualAmount = Long.parseLong(razorpayPayment.get("amount").toString());
-
         if (expectedAmount != actualAmount) {
             throw new BadRequestException("Amount mismatch");
         }
 
+        // Mark success
         payment.setProviderPaymentId(dto.getRazorpayPaymentId());
         payment.setProviderSignature(dto.getRazorpaySignature());
         payment.setStatus(PaymentStatus.SUCCESS.name());
+        payment.setPaymentMethod(razorpayPayment.get("method"));
         payment.setUpdatedDate(LocalDateTime.now());
-
         paymentRepo.save(payment);
 
         booking.setStatus(BookingStatus.PENDING_PARTNER_CONFIRMATION.name());
         booking.setUpdatedDate(LocalDateTime.now());
-
         bookingRepo.save(booking);
+
+        log.info("Payment verified successfully | bookingId={}, paymentId={}", bookingId, dto.getRazorpayPaymentId());
     }
 
-    /*
-     * PAYMENT FAILED
+    /**
+     * Marks a booking and its payment as FAILED.
+     * - Skips already successful or failed payments.
+     * - Updates both Payment and Booking status atomically.
+     *
+     * @param bookingId the booking identifier
      */
+    @Transactional
     public void markPaymentFailed(Long bookingId) {
-
         Booking booking = bookingRepo.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
 
         Payment payment = paymentRepo.findByBookingId(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
 
-        // ignore already successful payments
-        if (PaymentStatus.SUCCESS.name().equals(payment.getStatus())) {
+        // Ignore already successful or failed payments
+        if (PaymentStatus.SUCCESS.name().equals(payment.getStatus()) ||
+                PaymentStatus.FAILED.name().equals(payment.getStatus())) {
+            log.info("Payment already marked as {} | bookingId={}", payment.getStatus(), bookingId);
             return;
         }
 
+        log.warn("Marking payment as FAILED | bookingId={}", bookingId);
+
         payment.setStatus(PaymentStatus.FAILED.name());
         payment.setUpdatedDate(LocalDateTime.now());
-
         paymentRepo.save(payment);
 
         booking.setStatus(BookingStatus.PAYMENT_FAILED.name());
         booking.setUpdatedDate(LocalDateTime.now());
-
         bookingRepo.save(booking);
     }
 
-    /*
-     * REFUND PAYMENT
+    /**
+     * Initiates a refund for a successful payment.
+     * - Validates booking/payment and refund eligibility.
+     * - Calls Razorpay API to process refund.
+     * - Persists refund record and updates payment status.
+     *
+     * @param bookingId the booking identifier
+     * @param reason reason for refund
+     * @return RefundResultDTO containing refund details
      */
+    @Transactional
     public RefundResultDTO refundPayment(Long bookingId, String reason) {
+        Booking booking = bookingRepo.findById(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+
+        Payment payment = paymentRepo.findByBookingId(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
+
+        if (!PaymentStatus.SUCCESS.name().equals(payment.getStatus())) {
+            throw new BadRequestException("Payment is not successful");
+        }
+        if (PaymentStatus.REFUND_INITIATED.name().equals(payment.getStatus())) {
+            throw new BadRequestException("Refund already initiated");
+        }
+        if (PaymentStatus.REFUNDED.name().equals(payment.getStatus())) {
+            throw new BadRequestException("Payment already refunded");
+        }
+
+        BigDecimal refundAmount = calculateRefundAmount(payment);
+        if (refundAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BadRequestException("No refund applicable");
+        }
 
         try {
-            Booking booking = bookingRepo.findById(bookingId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
-
-            Payment payment = paymentRepo.findByBookingId(bookingId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
-
-            if (!PaymentStatus.SUCCESS.name().equals(payment.getStatus())) {
-                throw new BadRequestException("Payment is not successful");
-            }
-
-            if (PaymentStatus.REFUND_INITIATED.name().equals(payment.getStatus())) {
-                throw new BadRequestException("Refund already initiated");
-            }
-
-            if (PaymentStatus.REFUNDED.name().equals(payment.getStatus())) {
-                throw new BadRequestException("Payment already refunded");
-            }
-
-            BigDecimal refundAmount = calculateRefundAmount(payment);
-
-            if (refundAmount.compareTo(BigDecimal.ZERO) <= 0) {
-                throw new BadRequestException("No refund applicable");
-            }
-
             RazorpayClient client = new RazorpayClient(keyId, keySecret);
+
+            long amountInPaise = refundAmount.multiply(BigDecimal.valueOf(100))
+                    .setScale(0, RoundingMode.DOWN)
+                    .longValue();
 
             JSONObject options = new JSONObject();
             options.put("payment_id", payment.getProviderPaymentId());
-
-            long amountInPaise =
-                    refundAmount.multiply(
-                                    BigDecimal.valueOf(100)
-                            )
-                            .setScale(0, RoundingMode.DOWN)
-                            .longValue();
-
             options.put("amount", amountInPaise);
 
             Refund refund = client.payments.refund(options);
 
             String razorpayStatus = refund.get("status").toString();
-
             String providerRefundId = refund.get("id").toString();
-
-            BigDecimal actualRefund = new BigDecimal(refund.get("amount").toString()).divide(BigDecimal.valueOf(100));
+            BigDecimal actualRefund = new BigDecimal(refund.get("amount").toString())
+                    .divide(BigDecimal.valueOf(100));
 
             String finalStatus;
-
             if ("processed".equalsIgnoreCase(razorpayStatus)) {
                 finalStatus = PaymentStatus.SUCCESS.name();
             } else if ("pending".equalsIgnoreCase(razorpayStatus)) {
@@ -304,19 +425,18 @@ public class PaymentService {
             paymentRefund.setProviderRefundId(providerRefundId);
             paymentRefund.setStatus(finalStatus);
             paymentRefund.setCreatedDate(LocalDateTime.now());
-
             refundRepo.save(paymentRefund);
 
             payment.setStatus(PaymentStatus.REFUNDED.name());
             payment.setUpdatedDate(LocalDateTime.now());
-
             paymentRepo.save(payment);
 
             // booking remains REJECTED from partner flow, not CANCELLED
             //booking.setStatus(BookingStatus.CANCELLED.name());
             //booking.setUpdatedDate(LocalDateTime.now());
-
             //bookingRepo.save(booking);
+
+            log.info("Refund initiated | bookingId={}, refundId={}, status={}", bookingId, providerRefundId, finalStatus);
 
             return RefundResultDTO.builder()
                     .refundAmount(actualRefund)
@@ -324,23 +444,32 @@ public class PaymentService {
                     .providerRefundId(providerRefundId)
                     .build();
 
-        } catch (Exception e) {
-            throw new RuntimeException(
-                    "Refund failed: " + e.getMessage(),
-                    e
-            );
+        } catch (RazorpayException e) {
+            log.error("Refund failed | bookingId={}", bookingId, e);
+            throw new PaymentGatewayException("Refund failed", e);
         }
     }
 
-    /*
-     * WEBHOOK HANDLER
+    /**
+     * Handles Razorpay webhook events.
+     * - Verifies signature
+     * - Updates Payment and Booking status based on event type
+     *
+     * @param payload   the webhook payload JSON
+     * @param signature the Razorpay signature header
      */
-    public void handleWebhook(
-            String payload,
-            String signature
-    ) {
-
+    @Transactional
+    public void handleWebhook(String payload, String signature) {
         log.info("Received Razorpay webhook");
+
+        // Verify signature
+        String expectedSignature = hmacSHA256(payload, keySecret);
+        if (!MessageDigest.isEqual(
+                expectedSignature.getBytes(StandardCharsets.UTF_8),
+                signature.getBytes(StandardCharsets.UTF_8))) {
+            log.error("Webhook signature verification failed");
+            throw new BadRequestException("Invalid webhook signature");
+        }
 
         JSONObject event = new JSONObject(payload);
         String eventType = event.getString("event");
@@ -359,56 +488,49 @@ public class PaymentService {
         Booking booking = bookingRepo.findById(payment.getBookingId())
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
 
-        if (PaymentStatus.SUCCESS.name()
-                .equals(payment.getStatus())) {
+        if (PaymentStatus.SUCCESS.name().equals(payment.getStatus())) {
+            log.info("Payment already marked SUCCESS | bookingId={}", booking.getBookingId());
             return;
         }
 
-        // webhook success finalizes online booking for partner approval
-        if ("payment.captured".equals(eventType)) {
+        switch (eventType) {
+            case "payment.captured" -> {
+                payment.setProviderPaymentId(paymentId);
+                payment.setStatus(PaymentStatus.SUCCESS.name());
+                payment.setUpdatedDate(LocalDateTime.now());
+                paymentRepo.save(payment);
 
-            payment.setProviderPaymentId(paymentId);
-            payment.setStatus(PaymentStatus.SUCCESS.name());
-            payment.setUpdatedDate(LocalDateTime.now());
+                booking.setStatus(BookingStatus.PENDING_PARTNER_CONFIRMATION.name());
+                booking.setUpdatedDate(LocalDateTime.now());
+                bookingRepo.save(booking);
 
-            paymentRepo.save(payment);
+                log.info("Payment captured | bookingId={} | paymentId={}", booking.getBookingId(), paymentId);
+            }
+            case "payment.failed" -> {
+                payment.setProviderPaymentId(paymentId);
+                payment.setStatus(PaymentStatus.FAILED.name());
+                payment.setUpdatedDate(LocalDateTime.now());
+                paymentRepo.save(payment);
 
-            booking.setStatus(BookingStatus.PENDING_PARTNER_CONFIRMATION.name());
-            booking.setUpdatedDate(LocalDateTime.now());
+                booking.setStatus(BookingStatus.PAYMENT_FAILED.name());
+                booking.setUpdatedDate(LocalDateTime.now());
+                bookingRepo.save(booking);
 
-            bookingRepo.save(booking);
-        }
-
-        // webhook failure immediately releases slot
-        else if ("payment.failed".equals(eventType)) {
-
-            payment.setProviderPaymentId(paymentId);
-            payment.setStatus(PaymentStatus.FAILED.name());
-            payment.setUpdatedDate(LocalDateTime.now());
-
-            paymentRepo.save(payment);
-
-            booking.setStatus(BookingStatus.PAYMENT_FAILED.name());
-            booking.setUpdatedDate(LocalDateTime.now());
+                log.warn("Payment failed | bookingId={} | paymentId={}", booking.getBookingId(), paymentId);
+            }
+            default -> log.info("Unhandled webhook event={} | bookingId={}", eventType, booking.getBookingId());
         }
     }
 
     /*
      * REFUND CALCULATION
      */
-    private BigDecimal calculateRefundAmount(
-            Payment payment
-    ) {
-
+    private BigDecimal calculateRefundAmount(Payment payment) {
         if (payment.getCreatedDate() == null) {
             return BigDecimal.ZERO;
         }
 
-        long minutes =
-                java.time.Duration.between(
-                        payment.getCreatedDate(),
-                        LocalDateTime.now()
-                ).toMinutes();
+        long minutes = Duration.between(payment.getCreatedDate(), LocalDateTime.now()).toMinutes();
 
         if (minutes <= 10) {
             return payment.getAmount();
@@ -426,32 +548,18 @@ public class PaymentService {
     /*
      * REFUND PREVIEW
      */
-    public Map<String, String> getRefundPreview(
-            Payment payment
-    ) {
+    public Map<String, String> getRefundPreview(Payment payment) {
+        BigDecimal refund = calculateRefundAmount(payment);
 
-        BigDecimal refund =
-                calculateRefundAmount(payment);
+        String tier = refund.compareTo(payment.getAmount()) == 0
+                ? "FULL"
+                : refund.compareTo(BigDecimal.ZERO) > 0
+                ? "PARTIAL"
+                : "NONE";
 
-        String tier =
-                refund.compareTo(payment.getAmount()) == 0
-                        ? "FULL"
-                        : refund.compareTo(BigDecimal.ZERO) > 0
-                        ? "PARTIAL"
-                        : "NONE";
-
-        Map<String, String> result =
-                new HashMap<>();
-
-        result.put(
-                "refundAmount",
-                refund.toPlainString()
-        );
-
-        result.put(
-                "refundTier",
-                tier
-        );
+        Map<String, String> result = new HashMap<>();
+        result.put("refundAmount", refund.toPlainString());
+        result.put("refundTier", tier);
 
         return result;
     }
@@ -459,40 +567,27 @@ public class PaymentService {
     /*
      * SIGNATURE HASH
      */
-    private String hmacSHA256(
-            String data,
-            String key
-    ) {
-
+    private String hmacSHA256(String data, String key) {
         try {
             Mac mac = Mac.getInstance("HmacSHA256");
-
-            mac.init(
-                    new SecretKeySpec(
-                            key.getBytes(),
-                            "HmacSHA256"
-                    )
+            SecretKeySpec secretKeySpec = new SecretKeySpec(
+                    key.getBytes(StandardCharsets.UTF_8),
+                    "HmacSHA256"
             );
+            mac.init(secretKeySpec);
 
-            byte[] hash =
-                    mac.doFinal(data.getBytes());
+            byte[] hash = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
 
-            StringBuilder hex =
-                    new StringBuilder();
-
+            // Convert bytes to hex string
+            StringBuilder hexString = new StringBuilder(hash.length * 2);
             for (byte b : hash) {
-                hex.append(
-                        String.format("%02x", b)
-                );
+                hexString.append(String.format("%02x", b));
             }
 
-            return hex.toString();
-
-        } catch (Exception e) {
-            throw new RuntimeException(
-                    "Signature generation failed",
-                    e
-            );
+            return hexString.toString();
+        } catch (GeneralSecurityException e) {
+            throw new SignatureGenerationException("Signature generation failed", e);
         }
     }
+
 }
