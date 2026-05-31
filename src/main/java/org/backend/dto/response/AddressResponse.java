@@ -69,4 +69,7 @@ public class AddressResponse {
 
     @Schema(description = "Marks whether this address is default", example = "true")
     private Boolean isSelected;
+
+    @Schema(description = "Distance from current location", example = "0.85")
+    private Double distance;
 }

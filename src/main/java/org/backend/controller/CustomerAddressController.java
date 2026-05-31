@@ -7,6 +7,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.backend.dto.common.ApiResponseDTO;
@@ -337,6 +340,32 @@ public class CustomerAddressController {
                 ApiResponseDTO.<List<AddressResponse>>builder()
                         .status(true)
                         .message(message)
+                        .data(addresses)
+                        .build()
+        );
+    }
+
+    // get customer's nearby addresses based on latitude and longitude
+    @GetMapping("/{customerId}/nearby")
+    public ResponseEntity<?> getNearbyAddresses(
+            @PathVariable Long customerId,
+            @RequestParam
+            @Min(-90) @Max(90)
+            @Digits(integer = 2, fraction = 6) double latitude,
+            @RequestParam
+            @Min(-180) @Max(180)
+            @Digits(integer = 3, fraction = 6) double longitude)  {
+
+        List<AddressResponse> addresses =
+                addressService.getNearbyAddresses(
+                        customerId,
+                        latitude,
+                        longitude);
+
+        return ResponseEntity.ok(
+                ApiResponseDTO.builder()
+                        .status(true)
+                        .message("Nearby addresses fetched successfully")
                         .data(addresses)
                         .build()
         );
