@@ -23,6 +23,7 @@ import org.backend.model.PaymentRefund;
 import org.backend.repository.BookingRepository;
 import org.backend.repository.PaymentRefundRepository;
 import org.backend.repository.PaymentRepository;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -38,6 +39,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -157,7 +159,7 @@ public class PaymentService {
                 .amount(booking.getFinalAmount())
                 .currency("INR")
                 .status(PaymentStatus.PENDING.name())
-                .provider("PAY_AT_SALON") //OFFLINE
+                .provider("OFFLINE") //OFFLINE
                 .build();
 
         paymentRepo.save(payment);
@@ -174,6 +176,77 @@ public class PaymentService {
      * @param bookingId the booking identifier
      * @return RazorpayOrderResponseDTO containing order details
      */
+//    @Transactional
+//    public RazorpayOrderResponseDTO createOrder(Long bookingId) {
+//        Booking booking = bookingRepo.findById(bookingId)
+//                .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + bookingId));
+//
+//        Payment payment = paymentRepo.findByBookingId(bookingId).orElse(null);
+//
+//        if (payment != null && PaymentStatus.SUCCESS.name().equals(payment.getStatus())) {
+//            throw new BadRequestException("Payment already completed for booking: " + bookingId);
+//        }
+//
+//        if (payment != null && payment.getProviderOrderId() != null &&
+//                PaymentStatus.INITIATED.name().equals(payment.getStatus())) {
+//            return new RazorpayOrderResponseDTO(
+//                    keyId,
+//                    payment.getProviderOrderId(),
+//                    booking.getFinalAmount().multiply(BigDecimal.valueOf(100)).longValue(),
+//                    "INR"
+//            );
+//        }
+//
+//        try {
+//            RazorpayClient client = new RazorpayClient(keyId, keySecret);
+//            long amountInPaise = booking.getFinalAmount().multiply(BigDecimal.valueOf(100)).longValue();
+//
+//            JSONObject options = new JSONObject();
+//            options.put("amount", amountInPaise);
+//            options.put("currency", "INR");
+//            options.put("receipt", "BK-" + bookingId);
+//
+//            JSONObject notes = new JSONObject();
+//            notes.put("bookingId", bookingId);
+//            options.put("notes", notes);
+//
+//            Order order = client.orders.create(options);
+//
+//            if (payment == null) {
+//                payment = Payment.builder()
+//                        .bookingId(bookingId)
+//                        .amount(booking.getFinalAmount())
+//                        .currency("INR")
+//                        .provider("RAZORPAY")
+//                        .status(PaymentStatus.INITIATED.name())
+//                        .providerOrderId(order.get("id").toString())
+//                        .build();
+//            } else {
+//                // Retry payment
+//                payment.setProvider("RAZORPAY");
+//                payment.setProviderOrderId(order.get("id").toString());
+//                payment.setProviderPaymentId(null);
+//                payment.setProviderSignature(null);
+//                payment.setStatus(PaymentStatus.INITIATED.name());
+//
+//            }
+//
+//            paymentRepo.save(payment);
+//
+//            return new RazorpayOrderResponseDTO(
+//                    keyId,
+//                    order.get("id").toString(),
+//                    ((Number) order.get("amount")).longValue(),
+//                    order.get("currency").toString()
+//            );
+//
+//        } catch (RazorpayException e) {
+//            log.error("Error creating Razorpay order | bookingId={}", bookingId, e);
+//            throw new PaymentGatewayException("Error creating Razorpay order for booking: " + bookingId, e);
+//        }
+//    }
+
+    //============START===============
     @Transactional
     public RazorpayOrderResponseDTO createOrder(Long bookingId) {
         Booking booking = bookingRepo.findById(bookingId)
@@ -185,18 +258,78 @@ public class PaymentService {
             throw new BadRequestException("Payment already completed for booking: " + bookingId);
         }
 
-        if (payment != null && payment.getProviderOrderId() != null &&
-                PaymentStatus.INITIATED.name().equals(payment.getStatus())) {
-            return new RazorpayOrderResponseDTO(
-                    keyId,
-                    payment.getProviderOrderId(),
-                    booking.getFinalAmount().multiply(BigDecimal.valueOf(100)).longValue(),
-                    "INR"
-            );
-        }
+        LocalDateTime now = LocalDateTime.now();
 
         try {
             RazorpayClient client = new RazorpayClient(keyId, keySecret);
+
+            // Reuse existing INITIATED order if still valid
+            if (payment != null && PaymentStatus.INITIATED.name().equals(payment.getStatus())
+                    && payment.getProviderOrderId() != null) {
+
+                Order existingOrder = client.orders.fetch(payment.getProviderOrderId());
+                JSONArray payments = existingOrder.get("payments");
+
+                for (int i = 0; i < payments.length(); i++) {
+                    JSONObject rpPayment = payments.getJSONObject(i);
+                    String status = rpPayment.getString("status");
+
+                    if ("captured".equalsIgnoreCase(status)) { //|| "authorized".equalsIgnoreCase(status)
+                        payment.setProviderPaymentId(rpPayment.getString("id"));
+                        payment.setStatus(PaymentStatus.SUCCESS.name());
+                        payment.setPaymentMethod(rpPayment.optString("method", null));
+                        payment.setUpdatedDate(now);
+                        paymentRepo.save(payment);
+
+                        if (BookingStatus.PAYMENT_PENDING.name().equals(booking.getStatus())) {
+                            booking.setStatus(BookingStatus.PENDING_PARTNER_CONFIRMATION.name());
+                            booking.setUpdatedDate(now);
+                            bookingRepo.save(booking);
+                        }
+
+                        throw new BadRequestException("Payment already completed for booking: " + bookingId);
+                    }
+                }
+
+                return new RazorpayOrderResponseDTO(
+                        keyId,
+                        payment.getProviderOrderId(),
+                        booking.getFinalAmount().multiply(BigDecimal.valueOf(100)).longValue(),
+                        "INR"
+                );
+            }
+
+            // Check FAILED payments against Razorpay before creating new order
+            if (payment != null && PaymentStatus.FAILED.name().equals(payment.getStatus())
+                    && payment.getProviderOrderId() != null) {
+
+                List<com.razorpay.Payment> razorpayPayments =
+                        client.orders.fetchPayments(payment.getProviderOrderId());
+
+                for (com.razorpay.Payment rpPayment : razorpayPayments) {
+                    String status = rpPayment.get("status").toString();
+
+                    if ("captured".equalsIgnoreCase(status)) { //|| "authorized".equalsIgnoreCase(status)
+
+                        payment.setProviderPaymentId(rpPayment.get("id").toString());
+                        payment.setStatus(PaymentStatus.SUCCESS.name());
+                        payment.setPaymentMethod(rpPayment.has("method") ? rpPayment.get("method").toString() : null);
+                        payment.setUpdatedDate(now);
+                        paymentRepo.save(payment);
+
+                        if (BookingStatus.PAYMENT_PENDING.name().equals(booking.getStatus())) {
+                            booking.setStatus(BookingStatus.PENDING_PARTNER_CONFIRMATION.name());
+                            booking.setUpdatedDate(now);
+                            bookingRepo.save(booking);
+                        }
+
+                        throw new BadRequestException("Payment already completed for booking: " + bookingId);
+                    }
+                }
+                // If still failed → proceed to create new order
+            }
+
+            // Create new order (first time or after confirmed failure)
             long amountInPaise = booking.getFinalAmount().multiply(BigDecimal.valueOf(100)).longValue();
 
             JSONObject options = new JSONObject();
@@ -220,13 +353,12 @@ public class PaymentService {
                         .providerOrderId(order.get("id").toString())
                         .build();
             } else {
-                // Retry payment
                 payment.setProvider("RAZORPAY");
                 payment.setProviderOrderId(order.get("id").toString());
                 payment.setProviderPaymentId(null);
                 payment.setProviderSignature(null);
                 payment.setStatus(PaymentStatus.INITIATED.name());
-
+                payment.setUpdatedDate(now);
             }
 
             paymentRepo.save(payment);
@@ -243,6 +375,8 @@ public class PaymentService {
             throw new PaymentGatewayException("Error creating Razorpay order for booking: " + bookingId, e);
         }
     }
+
+    //===========END================
 
     /**
      * Verifies a Razorpay payment for a booking.
@@ -275,7 +409,6 @@ public class PaymentService {
 
         String orderId = razorpayPayment.get("order_id").toString();
         String paymentStatus = razorpayPayment.get("status");
-
 
         if (!orderId.equals(dto.getRazorpayOrderId())) {
             throw new BadRequestException("Payment does not belong to provided order");

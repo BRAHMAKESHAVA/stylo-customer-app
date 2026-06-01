@@ -2,6 +2,7 @@ package org.backend.service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.backend.dto.booking.BookingRequestDTO;
 import org.backend.dto.booking.BookingResponseDTO;
 import org.backend.dto.request.PriceSummaryRequestDTO;
@@ -12,6 +13,7 @@ import org.backend.model.*;
 import org.backend.model.Package;
 import org.backend.repository.*;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -25,6 +27,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class BookingService {
 
     private final BookingRepository bookingRepo;
@@ -172,7 +175,7 @@ public class BookingService {
                 .endTime(endTime)
                 .grossAmount(pricing.grossAmount())
                 .platformFee(pricing.platformFee())
-                .taxAmount(BigDecimal.ZERO)
+                .taxAmount(pricing.taxAmount())
                 .discountAmount(pricing.discountAmount())
                 .finalAmount(pricing.finalAmount())
                 .partnerAmount(pricing.partnerAmount())
@@ -378,6 +381,9 @@ public class BookingService {
         }
         if (BookingStatus.COMPLETED.name().equals(booking.getStatus())) {
             throw new BadRequestException("Completed booking cannot be cancelled");
+        }
+        if (BookingStatus.IN_PROGRESS.name().equals(booking.getStatus())) {
+            throw new BadRequestException("In Progress booking cannot be cancelled");
         }
 
         // Update booking status
