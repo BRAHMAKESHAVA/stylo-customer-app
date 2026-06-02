@@ -137,7 +137,7 @@ public class PartnerBookingService {
             }
 
             // Cancel payment record for pay at salon rejection
-            if (PaymentMode.PAY_AT_SALON.name()
+            if (PaymentMode.OFFLINE.name()
                     .equalsIgnoreCase(payment.getProvider())) {
 
                 payment.setStatus(PaymentStatus.CANCELLED.name());
@@ -168,8 +168,8 @@ public class PartnerBookingService {
         Payment payment = getPayment(bookingId);
 
         // Pay-at-salon collection only
-        if (!PaymentMode.PAY_AT_SALON.name().equalsIgnoreCase(payment.getProvider())) {
-            throw new RuntimeException("Payment collection only allowed for PAY_AT_SALON");
+        if (!PaymentMode.OFFLINE.name().equalsIgnoreCase(payment.getProvider())) {
+            throw new RuntimeException("Payment collection only allowed for OFFLINE/PAY_AT_SALON bookings");
         }
 
         // Prevent duplicate payment collection
@@ -241,7 +241,7 @@ public class PartnerBookingService {
         }
 
         // PAY_AT_SALON must be collected before completion
-        if (PaymentMode.PAY_AT_SALON.name().equalsIgnoreCase(payment.getProvider())
+        if (PaymentMode.OFFLINE.name().equalsIgnoreCase(payment.getProvider())
                 && !PaymentStatus.SUCCESS.name().equalsIgnoreCase(payment.getStatus())) {
             throw new BadRequestException(
                     "Please collect payment before completing service"
@@ -290,7 +290,7 @@ public class PartnerBookingService {
         bookingServiceRepository.saveAll(services);
 
         // PAY_AT_SALON no show => cancel payment
-        if (payment != null && PaymentMode.PAY_AT_SALON.name()
+        if (payment != null && PaymentMode.OFFLINE.name()
                 .equalsIgnoreCase(payment.getProvider())) {
 
             payment.setStatus(PaymentStatus.CANCELLED.name());

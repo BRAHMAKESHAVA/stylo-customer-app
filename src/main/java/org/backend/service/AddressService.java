@@ -270,10 +270,7 @@ public class AddressService {
      * @param longitude the longitude of the location
      * @return list of nearby addresses with distance information
      */
-    public List<AddressResponse> getNearbyAddresses(
-            Long customerId,
-            double latitude,
-            double longitude) {
+    public List<AddressResponse> getNearbyAddresses(Long customerId, double latitude, double longitude) {
 
         if (!customerRepository.existsByCustomerId(customerId))
             throw new ResourceNotFoundException("Customer not found with ID: " + customerId);
@@ -301,7 +298,13 @@ public class AddressService {
                         maxLon,
                         radiusKm
                 );
-
+        if (!addresses.isEmpty()) {
+            Long addressId = addresses.getFirst().getAddressId();
+            // Unselect all other addresses
+            addressRepository.resetSelectedForCustomer(customerId, addressId);
+            // Select the nearest address
+            addressRepository.updateSelectedAddress(addressId, true);
+        }
         return addresses.stream()
                 .map(a -> AddressResponse.builder()
                         .addressId(a.getAddressId())
@@ -316,9 +319,11 @@ public class AddressService {
                         .pinCode(a.getPinCode())
                         .latitude(a.getLatitude())
                         .longitude(a.getLongitude())
-                        .distance(
-                                Math.round(a.getDistanceKm() * 100.0) / 100.0
-                        )
+                        .addressType(a.getAddressType())
+                        .labelName(a.getLabelName())
+                        .isDefault(a.getIsDefault())
+                        .isSelected(true)
+                        .distance(Math.round(a.getDistanceKm() * 100.0) / 100.0)
                         .build())
                 .toList();
 

@@ -50,8 +50,8 @@ public class CreateAddressRequest {
     @Schema(description = "Apartment or building name", example = "Sri Sai Residency")
     @Size(max = 40, message = "Building name cannot exceed 40 characters")
     @Pattern(
-            regexp = "^[A-Za-z]+(?: [A-Za-z]+)*$",
-            message = "Building name must contain only letters with single spaces between words"
+            regexp = "^[A-Za-z0-9]+(?:[-/ ][A-Za-z0-9]+)*$",
+            message = "Building name can contain letters, numbers, hyphen, slash, and single spaces only"
     )
     private String buildingName;
 

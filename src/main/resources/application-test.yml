@@ -57,7 +57,7 @@ app:
   cors:
     allowed-origins: http://localhost:5173,http://192.168.1.50:5173, https://cavally-prebuccal-sherell.ngrok-free.dev
   booking:
-    payment-hold-minutes: 10
+    payment-hold-minutes: 1
 twilio:
   account:
     sid: ${TWILIO_SID}
