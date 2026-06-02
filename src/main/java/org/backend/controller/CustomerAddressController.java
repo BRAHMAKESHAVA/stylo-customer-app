@@ -346,18 +346,11 @@ public class CustomerAddressController {
     @GetMapping("/{customerId}/nearby")
     public ResponseEntity<?> getNearbyAddresses(
             @PathVariable Long customerId,
-            @RequestParam
-            @Min(-90) @Max(90)
-            @Digits(integer = 2, fraction = 6) double latitude,
-            @RequestParam
-            @Min(-180) @Max(180)
-            @Digits(integer = 3, fraction = 6) double longitude)  {
+            @RequestParam double latitude,
+            @RequestParam double longitude)  {
 
         List<AddressResponse> addresses =
-                addressService.getNearbyAddresses(
-                        customerId,
-                        latitude,
-                        longitude);
+                addressService.getNearbyAddresses(customerId, latitude, longitude);
 
         return ResponseEntity.ok(
                 ApiResponseDTO.builder()

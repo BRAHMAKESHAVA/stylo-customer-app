@@ -1,9 +1,7 @@
 package org.backend.repository;
 
-import jakarta.transaction.Transactional;
 import org.backend.model.Booking;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -49,26 +47,44 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("statuses") List<String> statuses
     );
 
+//    @Query("""
+//             SELECT b
+//             FROM Booking b
+//             WHERE b.salonId = :salonId
+//             AND b.startTime >= :startOfDay
+//             AND b.startTime < :endOfDay
+//             AND (
+//                 b.status IN :statuses
+//                 OR (
+//                     b.status = 'PAYMENT_PENDING'
+//                     AND b.createdDate >= :pendingCutoff
+//                 )
+//             )
+//            """)
+//    List<Booking> findBookingsForDate(
+//            @Param("salonId") Long salonId,
+//            @Param("startOfDay") LocalDateTime startOfDay,
+//            @Param("endOfDay") LocalDateTime endOfDay,
+//            @Param("statuses") List<String> statuses,
+//            @Param("pendingCutoff") LocalDateTime pendingCutoff
+//    );
+
     @Query("""
-             SELECT b
-             FROM Booking b
-             WHERE b.salonId = :salonId
-             AND b.startTime >= :startOfDay
-             AND b.startTime < :endOfDay
-             AND (
-                 b.status IN :statuses
-                 OR (
-                     b.status = 'PAYMENT_PENDING'
-                     AND b.createdDate >= :pendingCutoff
-                 )
-             )
+                SELECT b
+                FROM Booking b
+                WHERE b.salonId = :salonId
+                AND b.startTime >= :startOfDay
+                AND b.startTime < :endOfDay
+                AND (
+                    b.status IN :statuses
+                    OR b.status = 'PAYMENT_PENDING'
+                )
             """)
     List<Booking> findBookingsForDate(
             @Param("salonId") Long salonId,
             @Param("startOfDay") LocalDateTime startOfDay,
             @Param("endOfDay") LocalDateTime endOfDay,
-            @Param("statuses") List<String> statuses,
-            @Param("pendingCutoff") LocalDateTime pendingCutoff
+            @Param("statuses") List<String> statuses
     );
 
     Optional<Booking> findFirstByCustomerIdAndSalonIdAndStartTimeAndStatus(

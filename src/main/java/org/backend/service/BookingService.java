@@ -516,54 +516,81 @@ public class BookingService {
         LocalDateTime dayEnd = date.plusDays(1).atStartOfDay();
         LocalDateTime paymentHoldThreshold = LocalDateTime.now().minusMinutes(paymentHoldMinutes);
 
+        //List<Booking> bookings = bookingRepo.findBookingsForDate(salonId, dayStart, dayEnd, activeStatuses, paymentHoldThreshold);
+
+        // All confirmed + all PAYMENT_PENDING bookings for the day
         List<Booking> bookings = bookingRepo.findBookingsForDate(
-                salonId, dayStart, dayEnd, activeStatuses, paymentHoldThreshold
+                salonId, dayStart, dayEnd, activeStatuses
+        );
+
+        // Booking IDs where payment was INITIATED within the hold window
+        Set<Long> activeHoldBookingIds  = new HashSet<>(
+                paymentRepo.findActiveHoldBookingIds(paymentHoldThreshold)
         );
 
         // Slot Calculation
         LocalDateTime slot = salon.getWorkingHoursStart().atDate(date);
         LocalDateTime closing = salon.getWorkingHoursEnd().atDate(date);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
+        LocalDateTime now = LocalDateTime.now();
 
         List<SlotResponseDTO> slots = new ArrayList<>();
 
         while (!slot.plusMinutes(totalDuration).isAfter(closing)) {
-            LocalDateTime currentSlot = slot;
-            LocalDateTime requestedEnd = currentSlot.plusMinutes(totalDuration);
+            LocalDateTime slotStart  = slot;
+            LocalDateTime slotEnd  = slot.plusMinutes(totalDuration);
             SlotStatus status = SlotStatus.AVAILABLE;
 
             // Past Slot Check
-            if (date.equals(LocalDate.now()) && currentSlot.isBefore(LocalDateTime.now())) {
+            if (date.equals(LocalDate.now()) && slotStart.isBefore(now)) {
                 status = SlotStatus.PAST;
             } else {
-                // Booking Counts
-                long exactBookedCount = bookings.stream()
+                // Confirmed bookings overlapping this slot
+                long confirmedOverlap = bookings.stream()
+                        .filter(b -> !BookingStatus.PAYMENT_PENDING.name().equals(b.getStatus()))
+                        .filter(b -> !b.getStartTime().isAfter(slotStart)   // started at or before slot
+                                && b.getEndTime().isAfter(slotStart))        // still ongoing at slot
+                        .count();
+
+                // PAYMENT_PENDING bookings overlapping this slot
+                // AND whose payment was INITIATED within the hold window
+                long holdOverlap = bookings.stream()
+                        .filter(b -> BookingStatus.PAYMENT_PENDING.name().equals(b.getStatus()))
+                        .filter(b -> activeHoldBookingIds.contains(b.getBookingId()))
+                        .filter(b -> !b.getStartTime().isAfter(slotStart)
+                                && b.getEndTime().isAfter(slotStart))
+                        .count();
+
+                // Any active booking that starts STRICTLY inside the duration window
+                // slotStart < b.startTime < slotEnd means the service can't complete
+                long intrudes = bookings.stream()
                         .filter(b -> !BookingStatus.PAYMENT_PENDING.name().equals(b.getStatus())
-                                && b.getStartTime().equals(currentSlot))
+                                || activeHoldBookingIds.contains(b.getBookingId()))
+                        .filter(b -> b.getStartTime().isAfter(slotStart)
+                                && b.getStartTime().isBefore(slotEnd))
                         .count();
 
-                long exactHoldCount = bookings.stream()
-                        .filter(b -> BookingStatus.PAYMENT_PENDING.name().equals(b.getStatus())
-                                && b.getCreatedDate().isAfter(paymentHoldThreshold)
-                                && b.getStartTime().equals(currentSlot))
-                        .count();
+                // Priority order matters:
+                // 1. BOOKED      — confirmed bookings fill all resources at this slot
+                // 2. UNAVAILABLE — duration window hits an existing booking, can't fit regardless
+                // 3. HOLD        — resources held by active payments
+                // 4. AVAILABLE
 
-                long overlapCount = bookings.stream()
-                        .filter(b -> b.getStartTime().isBefore(requestedEnd)
-                                && b.getEndTime().isAfter(currentSlot))
-                        .count();
-
-                // Status Decision
-                if (exactBookedCount >= totalResources) {
+                if (confirmedOverlap >= totalResources) {
                     status = SlotStatus.BOOKED;
-                } else if ((exactBookedCount + exactHoldCount) >= totalResources) {
+
+                } else if (holdOverlap >= totalResources) {
                     status = SlotStatus.HOLD;
-                } else if (overlapCount >= totalResources) {
+
+                } else if (intrudes > 0) {
                     status = SlotStatus.UNAVAILABLE;
+
+                } else {
+                    status = SlotStatus.AVAILABLE;
                 }
             }
 
-            slots.add(new SlotResponseDTO(currentSlot.toLocalTime().format(formatter), status));
+            slots.add(new SlotResponseDTO(slotStart.toLocalTime().format(formatter), status));
             slot = slot.plusMinutes(slotIntervalMinutes);
         }
 

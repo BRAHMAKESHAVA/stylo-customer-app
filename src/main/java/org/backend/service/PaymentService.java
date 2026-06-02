@@ -252,6 +252,10 @@ public class PaymentService {
         Booking booking = bookingRepo.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + bookingId));
 
+        if (!BookingStatus.PAYMENT_PENDING.name().equals(booking.getStatus())) {
+            throw new BadRequestException("Booking has expired. Please select a slot again.");
+        }
+
         Payment payment = paymentRepo.findByBookingId(bookingId).orElse(null);
 
         if (payment != null && PaymentStatus.SUCCESS.name().equals(payment.getStatus())) {
@@ -486,9 +490,9 @@ public class PaymentService {
         payment.setUpdatedDate(LocalDateTime.now());
         paymentRepo.save(payment);
 
-        booking.setStatus(BookingStatus.PAYMENT_FAILED.name());
-        booking.setUpdatedDate(LocalDateTime.now());
-        bookingRepo.save(booking);
+        //booking.setStatus(BookingStatus.PAYMENT_FAILED.name());
+        //booking.setUpdatedDate(LocalDateTime.now());
+        //bookingRepo.save(booking);
     }
 
     /**

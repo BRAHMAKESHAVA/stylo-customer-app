@@ -32,6 +32,10 @@ public interface AddressRepository extends JpaRepository<Address, Long> {
     void resetSelectedForCustomer(Long customerId);
 
     @Modifying
+    @Query("UPDATE Address a SET a.isSelected = :isSelected WHERE a.addressId = :addressId")
+    void updateSelectedAddress(@Param("addressId") Long addressId, @Param("isSelected") Boolean isSelected);
+
+    @Modifying
     @Query("UPDATE Address a SET a.isDefault = false WHERE a.customerId = :customerId AND a.addressId <> :addressId")
     void resetDefaultForCustomer(Long customerId, Long addressId);
 
@@ -64,6 +68,10 @@ public interface AddressRepository extends JpaRepository<Address, Long> {
                     a.pin_code AS pinCode,
                     a.latitude AS latitude,
                     a.longitude AS longitude,
+                    a.address_type AS addressType,
+                    a.label_name AS labelName,
+                    a.is_default AS isDefault,
+                    a.is_selected AS isSelected,
             
                     (
                         6371 * acos(
@@ -81,7 +89,8 @@ public interface AddressRepository extends JpaRepository<Address, Long> {
                   AND a.longitude BETWEEN :minLon AND :maxLon
             ) x
             WHERE x.distanceKm <= :distanceKm
-            ORDER BY x.distanceKm
+            ORDER BY x.distanceKm ASC
+            LIMIT 1
             """,
             nativeQuery = true)
     List<NearbyAddressProjection> findNearbyAddresses(
