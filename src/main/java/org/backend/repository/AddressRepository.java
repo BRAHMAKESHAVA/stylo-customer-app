@@ -47,6 +47,7 @@ public interface AddressRepository extends JpaRepository<Address, Long> {
     // Check if HOME/WORK exists excluding current address during update
     boolean existsByCustomerIdAndAddressTypeAndAddressIdNot(Long customerId, AddressType addressType, Long addressId);
 
+    // Custom query to find nearby addresses using Haversine formula
     @Query(value = """
             SELECT *
             FROM (
