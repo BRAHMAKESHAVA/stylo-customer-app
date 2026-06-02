@@ -307,8 +307,7 @@ public class PaymentService {
             if (payment != null && PaymentStatus.FAILED.name().equals(payment.getStatus())
                     && payment.getProviderOrderId() != null) {
 
-                List<com.razorpay.Payment> razorpayPayments =
-                        client.orders.fetchPayments(payment.getProviderOrderId());
+                List<com.razorpay.Payment> razorpayPayments = client.orders.fetchPayments(payment.getProviderOrderId());
 
                 for (com.razorpay.Payment rpPayment : razorpayPayments) {
                     String status = rpPayment.get("status").toString();
@@ -403,6 +402,10 @@ public class PaymentService {
 
         Payment payment = paymentRepo.findByBookingId(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
+
+        if (!BookingStatus.PAYMENT_PENDING.name().equals(booking.getStatus())) {
+            throw new BadRequestException("Booking has expired. Please select a slot again.");
+        }
 
         if (!"RAZORPAY".equalsIgnoreCase(payment.getProvider())) {
             throw new BadRequestException("Invalid payment provider");

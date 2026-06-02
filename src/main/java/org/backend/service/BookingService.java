@@ -161,6 +161,7 @@ public class BookingService {
         LocalDateTime startTime = bookingReq.getStartTime();
         LocalDateTime endTime = startTime.plusMinutes(totalDuration);
 
+        //salonResourceRepo.lockSalonResource(bookingReq.getSalonId());
         if (!checkSlotAvailable(bookingReq.getSalonId(), startTime, endTime)) {
             throw new BadRequestException("Selected slot is no longer available");
         }
