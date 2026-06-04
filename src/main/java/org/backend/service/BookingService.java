@@ -803,7 +803,6 @@ public class BookingService {
                 grossAmount = grossAmount.add(service.getPrice());
             }
         }
-        System.out.println(grossAmount);
         PricingResult pricing = calculatePricing(grossAmount);
 
         return new BookingResponseDTO(
