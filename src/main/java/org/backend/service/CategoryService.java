@@ -40,8 +40,7 @@ public class CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final SalonRepository salonRepository;
-    private final UserRepository userRepository;
-    private final PartnerRepository partnerRepository;
+    private final AuthService authService;
 
     /**
      * Creates a new category for a salon.
@@ -56,7 +55,7 @@ public class CategoryService {
     public ServiceCategoryResponse createCategory(CreateServiceCategoryRequest request) {
 
         // Validate salon ownership/access before proceeding with category creation
-        validateSalonAccess(request.getSalonId());
+        authService.validateSalonAccess(request.getSalonId());
 
         String categoryName = request.getCategoryName().trim();
         if (categoryName.isEmpty()) {
@@ -104,7 +103,7 @@ public class CategoryService {
     public ServiceCategoryResponse updateCategory(Long id, UpdateServiceCategoryRequest request) {
 
         // Validate salon ownership/access before proceeding with update
-        validateSalonAccess(request.getSalonId());
+        authService.validateSalonAccess(request.getSalonId());
 
         if (request.getSalonId() == null) {
             throw new BadRequestException(
@@ -168,7 +167,7 @@ public class CategoryService {
     public void deleteCategory(Long salonId, Long categoryId) {
 
         // Validate salon ownership/access before proceeding with deletion
-        validateSalonAccess(salonId);
+        authService.validateSalonAccess(salonId);
 
         ServiceCategory category = categoryRepository
                 .findByCategoryIdAndSalonId(categoryId, salonId)
@@ -238,39 +237,5 @@ public class CategoryService {
                     return dto;
                 })
                 .toList();
-    }
-
-    // VALIDATE SALON ACCESS
-    private void validateSalonAccess(Long salonId) {
-        SalonDetails salon = salonRepository.findById(salonId)
-                .orElseThrow(() -> new ResourceNotFoundException("Salon not found with id: " + salonId));
-
-        Users user = getCurrentUser();
-
-        if (user.getRole() == Role.ADMIN) {
-            return;
-        }
-
-        if (user.getRole() == Role.PARTNER) {
-            PartnerDetails partner = partnerRepository.findByMobile(user.getMobile())
-                    .orElseThrow(() -> new ResourceNotFoundException("Partner not found"));
-
-            boolean hasAccess = salonRepository.existsBySalonIdAndPartnerPartnerId(salonId, partner.getPartnerId());
-            if (!hasAccess) {
-                throw new AccessDeniedException("You do not have permission to perform this action for the selected salon.");
-            }
-            return;
-        }
-
-        throw new AccessDeniedException("Access denied");
-    }
-
-
-    private Users getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String mobile = authentication.getName();
-
-        return userRepository.findByMobile(mobile)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 }

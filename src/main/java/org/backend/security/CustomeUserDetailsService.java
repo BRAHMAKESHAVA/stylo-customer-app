@@ -1,6 +1,7 @@
 package org.backend.security;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.backend.exception.ResourceNotFoundException;
 import org.backend.model.Users;
 import org.backend.repository.UserRepository;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -32,7 +33,8 @@ public class CustomeUserDetailsService implements UserDetailsService {
         Long userId = Long.valueOf(id);
         log.info("Attempting to load user by userId: {}", userId);
         Users users = userRepository.findById(userId).orElseThrow(
-                () -> new UsernameNotFoundException("User not found"));
+                () -> new ResourceNotFoundException("User not found"));
+
         return new org.springframework.security.core.userdetails.User(
                 users.getMobile(),
                 users.getPassword(),

@@ -36,6 +36,7 @@ public class UserService {
     private final CustomerRepository customerRepository;
     private final PasswordEncoder passwordEncoder;
     private final PartnerRepository partnerRepository;
+    private final AuthService authService;
 
     /**
      * Registers a new user based on the provided registration details.
@@ -82,8 +83,7 @@ public class UserService {
      */
     // UPDATE USER
     public UserResponse updateUser(Long id, UserUpdateRequest user) {
-        Users existing = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+        Users existing = authService.validateUserAccess(id);
 
         if (user.getFirstName() != null &&
                 !user.getFirstName().isBlank()) {
@@ -123,13 +123,7 @@ public class UserService {
      */
     // GET USER BY ID
     public UserResponse getUserById(Long id) {
-        Users user = userRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "User not found with id: " + id
-                        )
-                );
-
+        Users user = authService.validateUserAccess(id);
         UserResponse response = new UserResponse();
         BeanUtils.copyProperties(user, response);
 
@@ -178,12 +172,7 @@ public class UserService {
      */
     // GET CUSTOMER BY ID
     public Customer getCustomerById(Long id) {
-        return customerRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Customer not found with id: " + id
-                        )
-                );
+        return authService.validateCustomerAccess(id);
     }
 
     //fetch all customers

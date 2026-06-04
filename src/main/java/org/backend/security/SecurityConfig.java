@@ -51,21 +51,37 @@ public class SecurityConfig {
                 .sessionManagement(sessionConfig -> sessionConfig
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/user/register").permitAll()
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+
+                        // Public APIs (no authentication required)
+                        .requestMatchers(HttpMethod.POST, "/user/register/**").permitAll()
                         .requestMatchers("/auth/login/**").permitAll()
-                        .requestMatchers("/user/**", "/api/customer-address/**").hasAnyRole("CUSTOMER", "ADMIN", "CAPTAIN", "PARTNER")
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+
+                        // Admin-only APIs
+                        .requestMatchers(HttpMethod.GET,
+                                "/user/all/**",
+                                "/user/customer/all/**")
+                        .hasRole("ADMIN")
+
+                        // Read-only APIs (accessible by CUSTOMER, ADMIN, CAPTAIN, PARTNER)
                         .requestMatchers(HttpMethod.GET, "/api/service-categories/**").hasAnyRole("CUSTOMER", "ADMIN", "CAPTAIN", "PARTNER")
                         .requestMatchers(HttpMethod.GET, "/api/packages/**").hasAnyRole("CUSTOMER", "ADMIN", "CAPTAIN", "PARTNER")
                         .requestMatchers(HttpMethod.GET, "/api/salon-resources/**").hasAnyRole("CUSTOMER", "ADMIN", "CAPTAIN", "PARTNER")
                         .requestMatchers(HttpMethod.GET, "/api/services/**").hasAnyRole("CUSTOMER", "ADMIN", "CAPTAIN", "PARTNER")
+
+                        // Create/Update/Delete APIs (restricted to ADMIN and PARTNER)
                         .requestMatchers("/api/service-categories/**").hasAnyRole("ADMIN", "PARTNER")
                         .requestMatchers("/api/packages/**").hasAnyRole("ADMIN", "PARTNER")
                         .requestMatchers("/api/salon-resources/**").hasAnyRole("ADMIN", "PARTNER")
                         .requestMatchers("/api/services/**").hasAnyRole("ADMIN", "PARTNER")
+
+                        // User-related APIs
+                        .requestMatchers("/user/**").hasAnyRole("CUSTOMER", "ADMIN", "CAPTAIN", "PARTNER")
+                        .requestMatchers("/api/customer-address/**").hasAnyRole("CUSTOMER", "ADMIN", "CAPTAIN", "PARTNER")
+
+                        // Default rule: everything else requires authentication
                         .anyRequest().authenticated()
                 )
-
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(exception -> exception
                         .accessDeniedHandler(customeAccessDenaidHandler)

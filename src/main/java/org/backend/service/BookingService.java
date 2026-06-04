@@ -38,6 +38,7 @@ public class BookingService {
     private final PackageServiceRepository packageServiceRepository;
     private final PackageRepository packageRepository;
     private final SalonResourceRepository salonResourceRepo;
+    private final AuthService authService;
 
     @Value("${app.booking.payment-hold-minutes}")
     private int paymentHoldMinutes;
@@ -53,6 +54,8 @@ public class BookingService {
      */
     @Transactional
     public BookingResponseDTO createBooking(BookingRequestDTO bookingReq) {
+        // Validate that the logged-in customer is authorized to access this customer record
+        authService.validateCustomerAccess(bookingReq.getCustomerId());
 
         validateRequest(bookingReq);
 
@@ -415,9 +418,12 @@ public class BookingService {
      * @param userId the customer identifier
      * @return list of BookingResponseDTO containing booking and related details
      */
-    public List<BookingResponseDTO> getCustomerBookings(Long userId) {
+    public List<BookingResponseDTO> getCustomerBookings(Long customerId) {
+        // Validate that the logged-in customer is authorized to access this customer record
+        authService.validateCustomerAccess(customerId);
+
         // Fetch bookings for the customer
-        List<Booking> bookings = bookingRepo.findByCustomerId(userId);
+        List<Booking> bookings = bookingRepo.findByCustomerId(customerId);
         List<BookingResponseDTO> response = new ArrayList<>();
 
         // Collect salon and booking IDs for batch queries
@@ -521,10 +527,7 @@ public class BookingService {
 
         // Fetch bookings
         List<Booking> bookings = bookingRepo.findBookingsForDate(
-                salonId,
-                dayStart,
-                dayEnd,
-                activeStatuses
+                salonId, dayStart, dayEnd, activeStatuses
         );
 
         // Active payment holds
@@ -549,35 +552,27 @@ public class BookingService {
             if (date.equals(LocalDate.now()) && slotStart.isBefore(now)) {
                 status = SlotStatus.PAST;
             } else {
-                // --------------------------------------------------
                 // BOOKED RESOURCES: Booking occupies the slot start time
-                // --------------------------------------------------
                 long bookedOverlap = bookings.stream()
                         .filter(b -> !BookingStatus.PAYMENT_PENDING.name().equals(b.getStatus()))
                         .filter(b -> !b.getStartTime().isAfter(slotStart) && b.getEndTime().isAfter(slotStart))
                         .count();
 
-                // --------------------------------------------------
                 // HOLD RESOURCES: PAYMENT_PENDING + INITIATED
-                // --------------------------------------------------
                 long holdOverlap = bookings.stream()
                         .filter(b -> BookingStatus.PAYMENT_PENDING.name().equals(b.getStatus()))
                         .filter(b -> activeHoldBookingIds.contains(b.getBookingId()))
                         .filter(b -> !b.getStartTime().isAfter(slotStart) && b.getEndTime().isAfter(slotStart))
                         .count();
 
-                // --------------------------------------------------
                 // SERVICE FIT CHECK: Any booking starts inside service window
-                // --------------------------------------------------
                 long intrudes = bookings.stream()
                         .filter(b -> !BookingStatus.PAYMENT_PENDING.name().equals(b.getStatus())
                                 || activeHoldBookingIds.contains(b.getBookingId()))
                         .filter(b -> b.getStartTime().isAfter(slotStart) && b.getStartTime().isBefore(slotEnd))
                         .count();
 
-                // --------------------------------------------------
                 // PRIORITY
-                // --------------------------------------------------
                 if (bookedOverlap >= totalResources) {
                     status = SlotStatus.BOOKED;
                 } else if (holdOverlap >= totalResources) {

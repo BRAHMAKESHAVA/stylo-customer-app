@@ -4,12 +4,20 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.backend.dto.response.AuthResponse;
 import org.backend.dto.response.RefreshTokenResponse;
+import org.backend.enums.Role;
 import org.backend.exception.ResourceNotFoundException;
 import org.backend.model.Customer;
+import org.backend.model.PartnerDetails;
+import org.backend.model.SalonDetails;
 import org.backend.model.Users;
 import org.backend.repository.CustomerRepository;
+import org.backend.repository.PartnerRepository;
+import org.backend.repository.SalonRepository;
 import org.backend.repository.UserRepository;
 import org.backend.utill.JwtUtill;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 /**
@@ -23,6 +31,8 @@ public class AuthService {
     private final JwtUtill jwtUtill;
     private final UserRepository userRepository;
     private final CustomerRepository customerRepository;
+    private final PartnerRepository partnerRepository;
+    private final SalonRepository salonRepository;
 
     /**
      * Extracts the source (origin) of the request from the HttpServletRequest.
@@ -98,5 +108,107 @@ public class AuthService {
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .build();
+    }
+
+    // VALIDATE SALON ACCESS
+    public void validateSalonAccess(Long salonId) {
+        // Ensure the salon exists
+        salonRepository.findById(salonId)
+                .orElseThrow(() -> new ResourceNotFoundException("Salon not found with id: " + salonId));
+
+        Users currentUser = getCurrentUser();
+        if (currentUser == null) {
+            throw new AccessDeniedException("No logged-in user found.");
+        }
+
+        // Admins can access any salon
+        if (currentUser.getRole() == Role.ADMIN) {
+            return;
+        }
+
+        // Partners can only access salons they are linked to
+        if (currentUser.getRole() == Role.PARTNER) {
+            PartnerDetails partner = partnerRepository.findByMobile(currentUser.getMobile())
+                    .orElseThrow(() -> new ResourceNotFoundException("Partner not found with mobile: " + currentUser.getMobile()));
+
+            boolean hasAccess = salonRepository.existsBySalonIdAndPartnerPartnerId(salonId, partner.getPartnerId());
+            if (!hasAccess) {
+                throw new AccessDeniedException(
+                        String.format("Partner %d does not have permission to access salon %d", partner.getPartnerId(), salonId)
+                );
+            }
+            return;
+        }
+
+        // Other roles are denied
+        throw new AccessDeniedException("Access denied for role: " + currentUser.getRole());
+    }
+
+    // VALIDATE USER ACCESS
+    public Users validateUserAccess(Long requestedUserId) {
+        Users currentUser = getCurrentUser();
+
+        if (currentUser == null) {
+            throw new AccessDeniedException("No logged-in user found.");
+        }
+
+        // Admins can access any user's information
+        if (currentUser.getRole() == Role.ADMIN) {
+            return currentUser;
+        }
+
+        // Non-admins can only access their own information
+        if (!currentUser.getId().equals(requestedUserId)) {
+            throw new AccessDeniedException(
+                    String.format("User %d is not authorized to access information for user %d",
+                            currentUser.getId(), requestedUserId)
+            );
+        }
+
+        return currentUser;
+    }
+
+    // VALIDATE CUSTOMER ACCESS
+    public Customer validateCustomerAccess(Long requestedCustomerId) {
+        Users currentUser = getCurrentUser();
+        if (currentUser == null) {
+            throw new AccessDeniedException("No logged-in user found.");
+        }
+
+        // Admins can access any customer by ID
+        if (currentUser.getRole() == Role.ADMIN) {
+            return customerRepository.findByUsers(currentUser)
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            String.format("Customer not found with id: %d", requestedCustomerId)
+                    ));
+        }
+
+        // For non-admins, ensure they have a customer profile
+        Customer customer = customerRepository.findByUsers(currentUser)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        String.format("Customer not found with id: %d", requestedCustomerId)
+                ));
+
+        // Check if the requested customer matches the logged-in customer
+        if (!customer.getCustomerId().equals(requestedCustomerId)) {
+            throw new AccessDeniedException("You are not authorized to access this customer's information.");
+        }
+
+        return customer;
+    }
+
+    // GET CURRENT USER
+    public Users getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new AccessDeniedException("No authenticated user found.");
+        }
+
+        String mobile = authentication.getName();
+        return userRepository.findByMobile(mobile)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        String.format("User not found with mobile: %s", mobile)
+                ));
     }
 }

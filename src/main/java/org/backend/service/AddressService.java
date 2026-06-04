@@ -32,6 +32,7 @@ public class AddressService {
 
     private final AddressRepository addressRepository;
     private final CustomerRepository customerRepository;
+    private final AuthService authService;
 
     @Value("${address.max.count}")
     private int maxAddressCount;
@@ -49,9 +50,8 @@ public class AddressService {
      */
     // CREATE ADDRESS
     public AddressResponse createAddress(Long customerId, CreateAddressRequest address) {
-
-        if (!customerRepository.existsByCustomerId(customerId))
-            throw new ResourceNotFoundException("Customer not found with ID: " + customerId);
+        // Validate that the logged-in customer is authorized to access this customer record
+        authService.validateCustomerAccess(customerId);
 
         long count = addressRepository.countByCustomerId(customerId);
 
@@ -100,8 +100,8 @@ public class AddressService {
      */
     // UPDATE ADDRESS
     public AddressResponse updateAddress(Long customerId, Long addressId, UpdateAddressRequest dto) {
-        if (!customerRepository.existsById(customerId))
-            throw new ResourceNotFoundException("Customer not found with ID: " + customerId);
+        // Validate that the logged-in customer is authorized to access this customer record
+        authService.validateCustomerAccess(customerId);
 
         Address existingAddress = addressRepository
                 .findByAddressIdAndCustomerId(addressId, customerId)
@@ -180,8 +180,8 @@ public class AddressService {
      */
     // DELETE ADDRESS
     public void deleteAddress(Long customerId, Long addressId) {
-        if (!customerRepository.existsById(customerId))
-            throw new ResourceNotFoundException("Customer not found with ID: " + customerId);
+        // Validate that the logged-in customer is authorized to access this customer record
+        authService.validateCustomerAccess(customerId);
 
         Address address = addressRepository
                 .findByAddressIdAndCustomerId(addressId, customerId)
@@ -205,8 +205,8 @@ public class AddressService {
      */
     // GET ADDRESS BY ID
     public AddressResponse getAddressById(Long customerId, Long addressId) {
-        if (!customerRepository.existsById(customerId))
-            throw new ResourceNotFoundException("Customer not found with ID: " + customerId);
+        // Validate that the logged-in customer is authorized to access this customer record
+        authService.validateCustomerAccess(customerId);
 
         Address customerAddress = addressRepository
                 .findByAddressIdAndCustomerId(addressId, customerId)
@@ -231,8 +231,8 @@ public class AddressService {
      */
     // GET ALL ADDRESSES
     public List<AddressResponse> getAllAddresses(Long customerId) {
-        if (!customerRepository.existsById(customerId))
-            throw new ResourceNotFoundException("Customer not found with ID: " + customerId);
+        // Validate that the logged-in customer is authorized to access this customer record
+        authService.validateCustomerAccess(customerId);
 
         List<Address> allCustomerAddresses = addressRepository.findByCustomerIdOrderByUpdatedAtDesc(customerId);
 
@@ -271,9 +271,8 @@ public class AddressService {
      * @return list of nearby addresses with distance information
      */
     public List<AddressResponse> getNearbyAddresses(Long customerId, double latitude, double longitude) {
-
-        if (!customerRepository.existsByCustomerId(customerId))
-            throw new ResourceNotFoundException("Customer not found with ID: " + customerId);
+        // Validate that the logged-in customer is authorized to access this customer record
+        authService.validateCustomerAccess(customerId);
 
         double radiusKm = 1.0;
 
