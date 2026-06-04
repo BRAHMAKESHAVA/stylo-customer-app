@@ -49,10 +49,7 @@ public class UserService {
         }
 
         if (registerUser.getRole() == Role.PARTNER) {
-            boolean partnerExists =
-                    partnerRepository.existsByMobile(registerUser.getMobile());
-
-            if (!partnerExists) {
+            if (!partnerRepository.existsByMobile(registerUser.getMobile())) {
                 throw new BadRequestException(
                         "Only our onboard partners can register from this platform."
                 );
@@ -71,9 +68,7 @@ public class UserService {
         users = userRepository.save(users);
 
         if (registerUser.getRole() == Role.CUSTOMER) {
-            customerRepository.save(
-                    Customer.builder().users(users).build()
-            );
+            customerRepository.save(Customer.builder().users(users).build());
         }
 
         UserResponse response = new UserResponse();
@@ -88,11 +83,7 @@ public class UserService {
     // UPDATE USER
     public UserResponse updateUser(Long id, UserUpdateRequest user) {
         Users existing = userRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "User not found with id: " + id
-                        )
-                );
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
         if (user.getFirstName() != null &&
                 !user.getFirstName().isBlank()) {

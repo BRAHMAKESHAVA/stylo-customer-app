@@ -75,9 +75,11 @@ public class JwtUtill {
     }
 
     public boolean isGuestToken(String token) {
-        return "GUEST".equals(
-                extractAllClaims(token).get("role", String.class)
-        );
+        return "GUEST".equals(extractAllClaims(token).get("role", String.class));
+    }
+
+    public String extractRole(String token) {
+        return extractAllClaims(token).get("role", String.class);
     }
 
     public String getSubject(String token) {

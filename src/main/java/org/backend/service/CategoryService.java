@@ -5,17 +5,26 @@ import org.backend.dto.common.PageResponse;
 import org.backend.dto.request.CreateServiceCategoryRequest;
 import org.backend.dto.request.UpdateServiceCategoryRequest;
 import org.backend.dto.response.ServiceCategoryResponse;
+import org.backend.enums.Role;
 import org.backend.exception.BadRequestException;
 import org.backend.exception.DuplicateResourceException;
 import org.backend.exception.ResourceNotFoundException;
+import org.backend.model.PartnerDetails;
+import org.backend.model.SalonDetails;
 import org.backend.model.ServiceCategory;
+import org.backend.model.Users;
 import org.backend.repository.CategoryRepository;
+import org.backend.repository.PartnerRepository;
 import org.backend.repository.SalonRepository;
+import org.backend.repository.UserRepository;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -31,6 +40,8 @@ public class CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final SalonRepository salonRepository;
+    private final UserRepository userRepository;
+    private final PartnerRepository partnerRepository;
 
     /**
      * Creates a new category for a salon.
@@ -42,47 +53,41 @@ public class CategoryService {
      * @throws DuplicateResourceException if category name already exists for the salon
      */
     // CREATE CATEGORY
-    public ServiceCategoryResponse createCategory(CreateServiceCategoryRequest category) {
+    public ServiceCategoryResponse createCategory(CreateServiceCategoryRequest request) {
 
-        salonRepository.findById(category.getSalonId())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Salon not found with id: " + category.getSalonId()
-                        )
-                );
+        // Validate salon ownership/access before proceeding with category creation
+        validateSalonAccess(request.getSalonId());
 
-        String categoryName = category.getCategoryName().trim();
-
+        String categoryName = request.getCategoryName().trim();
         if (categoryName.isEmpty()) {
-            throw new BadRequestException(
-                    "Category name cannot be empty. Please provide a valid name."
-            );
+            throw new BadRequestException("Category name cannot be empty. Please provide a valid name.");
         }
 
-        boolean exists = categoryRepository
-                .existsBySalonIdAndCategoryNameIgnoreCase(
-                        category.getSalonId(),
-                        categoryName
-                );
-
-        if (exists)
+        boolean exists = categoryRepository.existsBySalonIdAndCategoryNameIgnoreCase(
+                request.getSalonId(), categoryName
+        );
+        if (exists) {
             throw new DuplicateResourceException(
                     "Category '" + categoryName + "' already exists for this salon"
             );
+        }
 
-        category.setCategoryName(categoryName);
+        request.setCategoryName(categoryName);
+        if (request.getIsActive() == null) {
+            request.setIsActive(true);
+        }
 
-        if (category.getIsActive() == null)
-            category.setIsActive(true);
+        ServiceCategory newCategory = new ServiceCategory();
+        BeanUtils.copyProperties(request, newCategory);
 
-        ServiceCategory newCateory = new ServiceCategory();
-        BeanUtils.copyProperties(category, newCateory);
+        ServiceCategory savedCategory = categoryRepository.save(newCategory);
 
         ServiceCategoryResponse response = new ServiceCategoryResponse();
-        BeanUtils.copyProperties(categoryRepository.save(newCateory), response);
+        BeanUtils.copyProperties(savedCategory, response);
 
         return response;
     }
+
 
     /**
      * Updates an existing category.
@@ -97,6 +102,10 @@ public class CategoryService {
      */
     // UPDATE CATEGORY
     public ServiceCategoryResponse updateCategory(Long id, UpdateServiceCategoryRequest request) {
+
+        // Validate salon ownership/access before proceeding with update
+        validateSalonAccess(request.getSalonId());
+
         if (request.getSalonId() == null) {
             throw new BadRequestException(
                     "Salon ID is required to update the category."
@@ -157,6 +166,10 @@ public class CategoryService {
      */
     // DELETE CATEGORY
     public void deleteCategory(Long salonId, Long categoryId) {
+
+        // Validate salon ownership/access before proceeding with deletion
+        validateSalonAccess(salonId);
+
         ServiceCategory category = categoryRepository
                 .findByCategoryIdAndSalonId(categoryId, salonId)
                 .orElseThrow(() ->
@@ -225,5 +238,39 @@ public class CategoryService {
                     return dto;
                 })
                 .toList();
+    }
+
+    // VALIDATE SALON ACCESS
+    private void validateSalonAccess(Long salonId) {
+        SalonDetails salon = salonRepository.findById(salonId)
+                .orElseThrow(() -> new ResourceNotFoundException("Salon not found with id: " + salonId));
+
+        Users user = getCurrentUser();
+
+        if (user.getRole() == Role.ADMIN) {
+            return;
+        }
+
+        if (user.getRole() == Role.PARTNER) {
+            PartnerDetails partner = partnerRepository.findByMobile(user.getMobile())
+                    .orElseThrow(() -> new ResourceNotFoundException("Partner not found"));
+
+            boolean hasAccess = salonRepository.existsBySalonIdAndPartnerPartnerId(salonId, partner.getPartnerId());
+            if (!hasAccess) {
+                throw new AccessDeniedException("You do not have permission to perform this action for the selected salon.");
+            }
+            return;
+        }
+
+        throw new AccessDeniedException("Access denied");
+    }
+
+
+    private Users getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String mobile = authentication.getName();
+
+        return userRepository.findByMobile(mobile)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 }

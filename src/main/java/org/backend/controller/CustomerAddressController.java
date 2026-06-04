@@ -99,7 +99,6 @@ public class CustomerAddressController {
             @Valid @RequestBody CreateAddressRequest address) {
 
         log.info("Received request to create address for customer ID {}: {}", customerId, address);
-
         return ResponseEntity.ok()
                 .body(ApiResponseDTO.<AddressResponse>builder()
                         .status(true)
@@ -343,17 +342,55 @@ public class CustomerAddressController {
     }
 
     // get customer's nearby addresses based on latitude and longitude
-    @GetMapping("/{customerId}/nearby")
-    public ResponseEntity<?> getNearbyAddresses(
+    @GetMapping(
+            value = "/{customerId}/nearby",
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    @Operation(
+            summary = "Get customer's nearby addresses",
+            description = "Retrieves nearby saved addresses for a specific customer based on latitude and longitude.",
+            operationId = "getNearbyAddresses"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Nearby addresses retrieved successfully"
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Customer not found",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Internal server error",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
+            )
+    })
+    public ResponseEntity<ApiResponseDTO<List<AddressResponse>>> getNearbyAddresses(
+            @Parameter(description = "Unique identifier of the customer")
             @PathVariable Long customerId,
-            @RequestParam double latitude,
-            @RequestParam double longitude)  {
 
-        List<AddressResponse> addresses =
-                addressService.getNearbyAddresses(customerId, latitude, longitude);
+            @Parameter(description = "Latitude coordinate for nearby search")
+            @RequestParam double latitude,
+
+            @Parameter(description = "Longitude coordinate for nearby search")
+            @RequestParam double longitude
+    ) {
+        List<AddressResponse> addresses = addressService.getNearbyAddresses(customerId, latitude, longitude);
 
         return ResponseEntity.ok(
-                ApiResponseDTO.builder()
+                ApiResponseDTO.<List<AddressResponse>>builder()
                         .status(true)
                         .message("Nearby addresses fetched successfully")
                         .data(addresses)

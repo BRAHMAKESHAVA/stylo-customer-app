@@ -12,18 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface SalonRepository extends JpaRepository<SalonDetails, Long> {
-    /**
-     * Finds nearby salons based on the provided latitude, longitude, and distance.
-     *
-     * @param lat        the latitude of the user's location
-     * @param lon        the longitude of the user's location
-     * @param minLat     the minimum latitude for the bounding box
-     * @param maxLat     the maximum latitude for the bounding box
-     * @param minLon     the minimum longitude for the bounding box
-     * @param maxLon     the maximum longitude for the bounding box
-     * @param distanceKm the maximum distance in kilometers to consider a salon as nearby
-     * @return a page of nearby salons matching the criteria
-     */
+
     @Query(value = """
                 SELECT *
                 FROM (
@@ -65,22 +54,6 @@ public interface SalonRepository extends JpaRepository<SalonDetails, Long> {
             @Param("distanceKm") double distanceKm
     );
 
-    /**
-     * Native query to find nearby salons with pagination support.
-     * The query calculates the distance of each salon from the given coordinates
-     * and filters results based on the specified distance. It also includes a count query
-     * for pagination purposes.
-     *
-     * @param lat        the latitude of the search location
-     * @param lon        the longitude of the search location
-     * @param minLat     the minimum latitude for bounding box filtering
-     * @param maxLat     the maximum latitude for bounding box filtering
-     * @param minLon     the minimum longitude for bounding box filtering
-     * @param maxLon     the maximum longitude for bounding box filtering
-     * @param distanceKm the maximum distance in kilometers to filter nearby salons
-     * @param pageable   the pagination information (page number, page size, sorting)
-     * @return a page of NearBySalonsProjection containing nearby salons with their details and distance
-     */
     @Query(value = """
                 SELECT *
                 FROM (
@@ -256,5 +229,7 @@ public interface SalonRepository extends JpaRepository<SalonDetails, Long> {
             @Param("distanceKm") double distanceKm,
             @Param("size") int size
     );
+
+    boolean existsBySalonIdAndPartnerPartnerId(Long salonId, Long partnerId);
 }
 

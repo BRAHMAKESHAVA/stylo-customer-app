@@ -54,9 +54,18 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/user/register").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/auth/login/**").permitAll()
-                        .requestMatchers("/user/**","/api/customer-address/**").hasAnyRole("CUSTOMER","ADMIN", "CAPTAIN", "PARTNER")
-                        .anyRequest().permitAll() //authenticated()permitAll()denyAll
+                        .requestMatchers("/user/**", "/api/customer-address/**").hasAnyRole("CUSTOMER", "ADMIN", "CAPTAIN", "PARTNER")
+                        .requestMatchers(HttpMethod.GET, "/api/service-categories/**").hasAnyRole("CUSTOMER", "ADMIN", "CAPTAIN", "PARTNER")
+                        .requestMatchers(HttpMethod.GET, "/api/packages/**").hasAnyRole("CUSTOMER", "ADMIN", "CAPTAIN", "PARTNER")
+                        .requestMatchers(HttpMethod.GET, "/api/salon-resources/**").hasAnyRole("CUSTOMER", "ADMIN", "CAPTAIN", "PARTNER")
+                        .requestMatchers(HttpMethod.GET, "/api/services/**").hasAnyRole("CUSTOMER", "ADMIN", "CAPTAIN", "PARTNER")
+                        .requestMatchers("/api/service-categories/**").hasAnyRole("ADMIN", "PARTNER")
+                        .requestMatchers("/api/packages/**").hasAnyRole("ADMIN", "PARTNER")
+                        .requestMatchers("/api/salon-resources/**").hasAnyRole("ADMIN", "PARTNER")
+                        .requestMatchers("/api/services/**").hasAnyRole("ADMIN", "PARTNER")
+                        .anyRequest().authenticated()
                 )
+
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(exception -> exception
                         .accessDeniedHandler(customeAccessDenaidHandler)

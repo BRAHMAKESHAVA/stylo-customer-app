@@ -18,8 +18,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.security.access.AccessDeniedException;
 
-import java.nio.file.AccessDeniedException;
 import java.util.*;
 
 @RestControllerAdvice
@@ -129,7 +129,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponseDTO> handleAccessDenied(AccessDeniedException ex) {
         log.warn("Access denied | Message: {}", ex.getMessage());
         return new ResponseEntity<>(
-                build(HttpStatus.FORBIDDEN, "ACCESS_DENIED", "You don’t have permission to access this resource"), HttpStatus.FORBIDDEN
+                build(HttpStatus.FORBIDDEN, "ACCESS_DENIED", ex.getMessage()), HttpStatus.FORBIDDEN
         );
     }
 

@@ -1,6 +1,7 @@
 package org.backend.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -314,15 +315,81 @@ public class SalonSearchController {
         );
     }
 
+    /**
+     * Retrieves a list of popular salons near the given coordinates within the specified distance.
+     * Popularity ranking is determined by the database query (e.g. booking count or rating).
+     * Distance is calculated using a bounding-box approximation with Haversine filtering.
+     * Each result includes salon details, working hours, address, and a front-view image if available.
+     *
+     * @param latitude  latitude of the user's current location (e.g. 12.9716)
+     * @param longitude longitude of the user's current location (e.g. 77.5946)
+     * @param distance  search radius in the specified unit (KM or M)
+     * @param unit      distance unit — "KM" (default) or "M"; controls both input and response distances
+     * @param size      maximum number of results to return; must be between 1 and 20, defaults to 20
+     * @return ResponseEntity containing ApiResponseDTO with a list of SalonDetailsDTO,
+     *         or an empty list if no salons are found within the given range
+     */
     @GetMapping("/salons/popular")
+    @Operation(
+            summary = "Get popular salons near a location",
+            description = """
+                Retrieves a list of popular salons within a specified distance from the given
+                coordinates.
+                
+                Unit behavior:
+                - KM (default): distance parameter and response distances are in kilometres
+                - M: distance parameter is treated as metres and response distances are in metres
+                
+                Results are capped at 20 salons maximum. Each result includes salon details,
+                working hours, address, and a front-view image URL if available.
+                """,
+            operationId = "getPopularSalons"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Popular salons fetched successfully. Returns an empty list if none found within range."
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = """
+                        Bad request. Possible reasons:
+                        - "Size must be between 1 and 20"
+                        """,
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication is required or the provided token is invalid",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - You do not have permission to access this resource",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Internal server error",
+                    content = @Content
+            )
+    })
     public ResponseEntity<?> getPopularSalons(
+            @Parameter(description = "Latitude of the user's current location (e.g. 12.9716)")
             @RequestParam double latitude,
+
+            @Parameter(description = "Longitude of the user's current location (e.g. 77.5946)")
             @RequestParam double longitude,
+
+            @Parameter(description = "Search radius in the specified unit. For KM: use values like 1.5, 5, 10. For M: use values like 500, 1000, 5000.")
             @RequestParam double distance,
+
+            @Parameter(description = "Unit for the distance parameter and response distances. Accepted values: KM (default), M")
             @RequestParam(defaultValue = "KM") String unit,
+
+            @Parameter(description = "Maximum number of salons to return. Must be between 1 and 20. Defaults to 20.")
             @RequestParam(defaultValue = "20") Integer size
     ) {
-
         List<SalonDetailsDTO> popularSalons =
                 salonSearchService.getPopularSalons(
                         latitude, longitude,

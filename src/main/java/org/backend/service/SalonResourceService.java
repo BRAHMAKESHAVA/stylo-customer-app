@@ -4,13 +4,22 @@ import lombok.RequiredArgsConstructor;
 import org.backend.dto.request.CreateSalonResourceRequest;
 import org.backend.dto.request.UpdateSalonResourceRequest;
 import org.backend.dto.response.SalonResourceResponse;
+import org.backend.enums.Role;
 import org.backend.exception.BadRequestException;
 import org.backend.exception.DuplicateResourceException;
 import org.backend.exception.ResourceNotFoundException;
+import org.backend.model.PartnerDetails;
+import org.backend.model.SalonDetails;
 import org.backend.model.SalonResource;
+import org.backend.model.Users;
+import org.backend.repository.PartnerRepository;
 import org.backend.repository.SalonRepository;
 import org.backend.repository.SalonResourceRepository;
+import org.backend.repository.UserRepository;
 import org.springframework.beans.BeanUtils;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -19,6 +28,8 @@ public class SalonResourceService {
 
     private final SalonResourceRepository resourceRepository;
     private final SalonRepository salonRepository;
+    private final PartnerRepository partnerRepository;
+    private final UserRepository userRepository;
 
     /**
      * Create a new resource for a salon.
@@ -26,8 +37,8 @@ public class SalonResourceService {
     // CREATE RESOURCE
     public SalonResourceResponse createResource(CreateSalonResourceRequest request) {
 
-        salonRepository.findById(request.getSalonId())
-                .orElseThrow(() -> new ResourceNotFoundException("Salon not found"));
+        // Validate salon ownership/access before proceeding with resource creation
+        validateSalonAccess(request.getSalonId());
 
         if (resourceRepository.existsBySalonId(request.getSalonId())) {
             throw new DuplicateResourceException(
@@ -69,6 +80,9 @@ public class SalonResourceService {
     // UPDATE RESOURCE
     public SalonResourceResponse updateResource(Long resourceId, UpdateSalonResourceRequest request) {
 
+        // Validate salon ownership/access before proceeding with resource update
+        validateSalonAccess(request.getSalonId());
+
         if (request.getSalonId() == null) {
             throw new BadRequestException(
                     "Salon ID is required to update the resource."
@@ -102,6 +116,10 @@ public class SalonResourceService {
      */
     // DELETE RESOURCE
     public void deleteResource(Long salonId, Long resourceId) {
+
+        // Validate salon ownership/access before proceeding with resource deletion
+        validateSalonAccess(salonId);
+
         resourceRepository.findByIdAndSalonId(resourceId, salonId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
@@ -111,5 +129,38 @@ public class SalonResourceService {
                 );
 
         resourceRepository.deleteById(resourceId);
+    }
+
+    // VALIDATE SALON ACCESS
+    private void validateSalonAccess(Long salonId) {
+        SalonDetails salon = salonRepository.findById(salonId)
+                .orElseThrow(() -> new ResourceNotFoundException("Salon not found with id: " + salonId));
+
+        Users user = getCurrentUser();
+
+        if (user.getRole() == Role.ADMIN) {
+            return;
+        }
+
+        if (user.getRole() == Role.PARTNER) {
+            PartnerDetails partner = partnerRepository.findByMobile(user.getMobile())
+                    .orElseThrow(() -> new ResourceNotFoundException("Partner not found"));
+
+            boolean hasAccess = salonRepository.existsBySalonIdAndPartnerPartnerId(salonId, partner.getPartnerId());
+            if (!hasAccess) {
+                throw new AccessDeniedException("You do not have permission to perform this action for the selected salon.");
+            }
+            return;
+        }
+
+        throw new AccessDeniedException("Access denied");
+    }
+
+    private Users getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String mobile = authentication.getName();
+
+        return userRepository.findByMobile(mobile)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 }
