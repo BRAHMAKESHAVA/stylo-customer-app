@@ -1,0 +1,123 @@
+services:
+
+  customer-postgres:
+    image: postgres:15-alpine
+    container_name: customer-postgres
+    environment:
+      POSTGRES_DB: user_management_db
+      POSTGRES_USER: testing
+      POSTGRES_PASSWORD: "1234567890"
+    ports:
+      - "5434:5432"
+    volumes:
+      - customer_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U testing"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis-db:
+    image: redis:7-alpine
+    container_name: redis-test
+    ports:
+      - "6380:6379"
+    restart: always
+    # ✅ Add a healthcheck so apps wait for Redis to be truly ready
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  customer-app1:
+    build: .
+    container_name: customer-app1
+    ports:
+      - "9095:9091"
+    environment:
+      DB_URL: jdbc:postgresql://customer-postgres:5432/user_management_db
+      DB_USERNAME: testing
+      DB_PASSWORD: "1234567890"
+      REDIS_HOST: redis-test
+      REDIS_PORT: 6379
+      JWT_SECRET: "GE+7Djq+PZMw+UAz73IsRTzDu3S+kTONJAbhvWHjiOEg+T+mdMBgpqv6uXL+u73cRJ9EQX8aSw86UCl8SCr++4OFGSfMepD8+pgAKAnM9qPLijTi8KNWVdEXGixBz/u5Cmb/ahhJI1+sxKGwwpcRLgL5XPS+wkgnHxFFfjq3emR3tej+oZBhT3X6lIrtOH4VXhcD0WFOa6Nu64PmiqCXEA=="
+      JAVA_OPTS: "-Xms256m -Xmx256m -XX:+UseG1GC"
+    mem_limit: 1g
+    depends_on:
+      customer-postgres:
+        condition: service_healthy
+      # ✅ THIS WAS MISSING — apps must wait for Redis
+      redis-db:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  customer-app2:
+    build: .
+    container_name: customer-app2
+    ports:
+      - "9096:9091"
+    environment:
+      DB_URL: jdbc:postgresql://customer-postgres:5432/user_management_db
+      DB_USERNAME: testing
+      DB_PASSWORD: "1234567890"
+      REDIS_HOST: redis-test
+      REDIS_PORT: 6379
+      JWT_SECRET: "GE+7Djq+PZMw+UAz73IsRTzDu3S+kTONJAbhvWHjiOEg+T+mdMBgpqv6uXL+u73cRJ9EQX8aSw86UCl8SCr++4OFGSfMepD8+pgAKAnM9qPLijTi8KNWVdEXGixBz/u5Cmb/ahhJI1+sxKGwwpcRLgL5XPS+wkgnHxFFfjq3emR3tej+oZBhT3X6lIrtOH4VXhcD0WFOa6Nu64PmiqCXEA=="
+      JAVA_OPTS: "-Xms256m -Xmx512m -XX:+UseG1GC"
+    mem_limit: 1g
+    depends_on:
+      customer-postgres:
+        condition: service_healthy
+      redis-db:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  customer-app3:
+    build: .
+    container_name: customer-app3
+    ports:
+      - "9097:9091"
+    environment:
+      DB_URL: jdbc:postgresql://customer-postgres:5432/user_management_db
+      DB_USERNAME: testing
+      DB_PASSWORD: "1234567890"
+      REDIS_HOST: redis-test
+      REDIS_PORT: 6379
+      JWT_SECRET: "GE+7Djq+PZMw+UAz73IsRTzDu3S+kTONJAbhvWHjiOEg+T+mdMBgpqv6uXL+u73cRJ9EQX8aSw86UCl8SCr++4OFGSfMepD8+pgAKAnM9qPLijTi8KNWVdEXGixBz/u5Cmb/ahhJI1+sxKGwwpcRLgL5XPS+wkgnHxFFfjq3emR3tej+oZBhT3X6lIrtOH4VXhcD0WFOa6Nu64PmiqCXEA=="
+      JAVA_OPTS: "-Xms512m -Xmx512m -XX:+UseG1GC"
+    mem_limit: 2g
+    depends_on:
+      customer-postgres:
+        condition: service_healthy
+      redis-db:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  customer-app4:
+    build: .
+    container_name: customer-app4
+    ports:
+      - "9098:9091"
+    environment:
+      DB_URL: jdbc:postgresql://customer-postgres:5432/user_management_db
+      DB_USERNAME: testing
+      DB_PASSWORD: "1234567890"
+      REDIS_HOST: redis-test
+      REDIS_PORT: 6379
+      JWT_SECRET: "GE+7Djq+PZMw+UAz73IsRTzDu3S+kTONJAbhvWHjiOEg+T+mdMBgpqv6uXL+u73cRJ9EQX8aSw86UCl8SCr++4OFGSfMepD8+pgAKAnM9qPLijTi8KNWVdEXGixBz/u5Cmb/ahhJI1+sxKGwwpcRLgL5XPS+wkgnHxFFfjq3emR3tej+oZBhT3X6lIrtOH4VXhcD0WFOa6Nu64PmiqCXEA=="
+      JAVA_OPTS: "-Xms512m -Xmx1g -XX:+UseG1GC"
+    mem_limit: 2g
+    depends_on:
+      customer-postgres:
+        condition: service_healthy
+      redis-db:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  customer_postgres_data:
