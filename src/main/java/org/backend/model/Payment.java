@@ -2,6 +2,8 @@ package org.backend.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -47,21 +49,11 @@ public class Payment {
     @Column(name = "provider_signature", length = 500)
     private String providerSignature;
 
+    @CreationTimestamp
     @Column(name = "created_date", nullable = false, updatable = false)
     private LocalDateTime createdDate;
 
+    @UpdateTimestamp
     @Column(name = "updated_date", nullable = false)
     private LocalDateTime updatedDate;
-
-    @PrePersist
-    public void prePersist() {
-        LocalDateTime now = LocalDateTime.now();
-        this.createdDate = now;
-        this.updatedDate = now;
-    }
-
-    @PreUpdate
-    public void preUpdate() {
-        this.updatedDate = LocalDateTime.now();
-    }
 }

@@ -11,7 +11,7 @@ spring:
   #    active: test
   datasource:
     #url: ${DB_URL:jdbc:postgresql://localhost:5432/my_database}
-    url: ${DB_URL:jdbc:mysql://localhost:3306/my_database?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC}
+    url: ${DB_URL:jdbc:mysql://localhost:3306/my_database?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=Asia/Kolkata}
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:root}
     hikari:
@@ -24,10 +24,12 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
+        jdbc:
+          time_zone: Asia/Kolkata
 
   data:
     redis:
@@ -59,6 +61,7 @@ app:
     allowed-origins: http://localhost:5173,http://192.168.1.50:5173, https://cavally-prebuccal-sherell.ngrok-free.dev
   booking:
     payment-hold-minutes: 1
+
 twilio:
   account:
     sid: ${TWILIO_SID}
@@ -68,7 +71,6 @@ twilio:
     from: ${TWILIO_SMS_FROM}
   whatsapp:
     sandbox: ${TWILIO_WHATSAPP_SANDBOX}
-
 
 address:
   max:

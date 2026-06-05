@@ -2,6 +2,8 @@ package org.backend.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -35,21 +37,12 @@ public class PaymentRefund {
     @Column(name = "provider_refund_id", length = 255)
     private String providerRefundId;
 
+    @CreationTimestamp
     @Column(name = "created_date", nullable = false, updatable = false)
     private LocalDateTime createdDate;
 
+    @UpdateTimestamp
     @Column(name = "updated_date")
     private LocalDateTime updatedDate;
 
-    @PrePersist
-    public void onCreate() {
-        LocalDateTime now = LocalDateTime.now();
-        this.createdDate = now;
-        this.updatedDate = now;
-    }
-
-    @PreUpdate
-    public void onUpdate() {
-        this.updatedDate = LocalDateTime.now();
-    }
 }

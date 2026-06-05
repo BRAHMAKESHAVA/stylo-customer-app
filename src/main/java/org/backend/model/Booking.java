@@ -5,6 +5,10 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -60,7 +64,11 @@ public class Booking {
     @Column(name = "rejection_reason", length = 500)
     private String rejectionReason;
 
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdDate;
 
+    @UpdateTimestamp
+    @Column(nullable = false)
     private LocalDateTime updatedDate;
 }

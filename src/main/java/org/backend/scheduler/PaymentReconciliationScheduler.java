@@ -34,12 +34,13 @@ public class PaymentReconciliationScheduler {
     @Value("${app.booking.payment-hold-minutes}")
     private int paymentHoldMinutes;
 
-    @Scheduled(fixedRate = 60000) // every 1 minute
+    @Scheduled(fixedRate = 30000) // every 30 seconds
     @Transactional
     public void reconcileInitiatedPayments() {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime cutoffTime = now.minusMinutes(paymentHoldMinutes); // configurable timeout
 
+        System.out.println("Running payment reconciliation at " + now + ", checking for payments before " + cutoffTime);
         List<Payment> payments = paymentRepo.findByStatusAndCreatedDateBefore(
                 PaymentStatus.INITIATED.name(),
                 cutoffTime);
