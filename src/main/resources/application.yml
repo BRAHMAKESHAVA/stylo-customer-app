@@ -71,7 +71,7 @@ twilio:
 
 otp:
   expiry-minutes: ${OTP_EXPIRY_MINUTES:2}
-  max-attempts: ${OTP_MAX_ATTEMPTS:3}
+  max-attempts: ${OTP_MAX_ATTEMPTS:5}
   lock-duration-minutes: ${OTP_LOCK_DURATION_MINUTES:10}
 
 address:
