@@ -31,7 +31,7 @@ services:
       retries: 5
 
   customer-app1:
-    build: .
+    build: src
     container_name: customer-app1
     ports:
       - "9095:9091"
@@ -54,7 +54,7 @@ services:
       - "host.docker.internal:host-gateway"
 
   customer-app2:
-    build: .
+    build: src
     container_name: customer-app2
     ports:
       - "9096:9091"
@@ -76,7 +76,7 @@ services:
       - "host.docker.internal:host-gateway"
 
   customer-app3:
-    build: .
+    build: src
     container_name: customer-app3
     ports:
       - "9097:9091"
@@ -98,7 +98,7 @@ services:
       - "host.docker.internal:host-gateway"
 
   customer-app4:
-    build: .
+    build: src
     container_name: customer-app4
     ports:
       - "9098:9091"
