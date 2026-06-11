@@ -32,5 +32,6 @@ public class Package {
     private BigDecimal packagePrice;
 
     @Column(name = "is_active")
+    @Builder.Default
     private Boolean isActive = true;
 }

@@ -7,8 +7,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -23,52 +21,54 @@ public class Booking {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "booking_id")
     private Long bookingId;
 
-    @Column(nullable = false)
+    @Column(name = "salon_id", nullable = false)
     private Long salonId;
 
-    @Column(nullable = false)
+    @Column(name = "customer_id", nullable = false)
     private Long customerId;
 
+    @Column(name = "package_id")
     private Long packageId;
 
-    @Column(nullable = false)
+    @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;
 
-    @Column(nullable = false)
+    @Column(name = "end_time", nullable = false)
     private LocalDateTime endTime;
 
-    @Column(precision = 10, scale = 2)
+    @Column(name = "gross_amount", precision = 10, scale = 2)
     private BigDecimal grossAmount;
 
-    @Column(precision = 10, scale = 2)
+    @Column(name = "platform_fee", precision = 10, scale = 2)
     private BigDecimal platformFee;
 
-    @Column(precision = 10, scale = 2)
+    @Column(name = "tax_amount", precision = 10, scale = 2)
     private BigDecimal taxAmount;
 
-    @Column(precision = 10, scale = 2)
+    @Column(name = "discount_amount", precision = 10, scale = 2)
     private BigDecimal discountAmount;
 
-    @Column(precision = 10, scale = 2)
+    @Column(name = "final_amount", precision = 10, scale = 2)
     private BigDecimal finalAmount;
 
-    @Column(precision = 10, scale = 2)
+    @Column(name = "partner_amount", precision = 10, scale = 2)
     private BigDecimal partnerAmount;
 
-    @Column(length = 50)
+    @Column(name = "status", length = 50)
     private String status;
 
-    //PARTNER REJECTION
+    // PARTNER REJECTION
     @Column(name = "rejection_reason", length = 500)
     private String rejectionReason;
 
     @CreationTimestamp
-    @Column(nullable = false, updatable = false)
+    @Column(name = "created_date", nullable = false, updatable = false)
     private LocalDateTime createdDate;
 
     @UpdateTimestamp
-    @Column(nullable = false)
+    @Column(name = "updated_date", nullable = false)
     private LocalDateTime updatedDate;
 }

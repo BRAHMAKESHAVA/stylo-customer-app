@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.backend.dto.common.ApiResponseDTO;
+import org.backend.dto.partner.BookingApprovalResponse;
 import org.backend.dto.partner.PartnerBookingPendingResponseDTO;
 import org.backend.dto.partner.PartnerBookingStatusResponseDTO;
 import org.backend.dto.partner.PartnerBookingStatusUpdateRequestDTO;
@@ -42,7 +43,7 @@ public class PartnerBookingController {
      *
      * @return list of PartnerBookingPendingResponseDTO for pending bookings
      */
-    @GetMapping("/pending")
+    //@GetMapping("/pending"
     @Operation(
             summary = "Get all pending bookings",
             description = """
@@ -496,6 +497,21 @@ public class PartnerBookingController {
         return ApiResponseDTO.<PartnerBookingStatusResponseDTO>builder()
                 .status(true)
                 .message("Booking marked as no-show")
+                .data(response)
+                .build();
+    }
+
+    // After flow change
+    @GetMapping("/pending")
+    public ApiResponseDTO<List<BookingApprovalResponse>> getBookingsForApproval() {
+        System.out.println("Polling for pending bookings for approval...");
+
+        List<BookingApprovalResponse> response =
+                partnerBookingService.getBookingsForApproval();
+
+        return ApiResponseDTO.<List<BookingApprovalResponse>>builder()
+                .status(true)
+                .message("Pending bookings fetched successfully")
                 .data(response)
                 .build();
     }

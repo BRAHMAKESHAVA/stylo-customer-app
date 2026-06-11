@@ -9,12 +9,10 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 public class PageResponse<T> {
-
     private int page;
     private int size;
     private long totalElements;
     private int totalPages;
     private boolean last;
-
     private List<T> content;
 }

@@ -16,7 +16,7 @@ public interface SalonResourceRepository extends JpaRepository<SalonResource, Lo
 
     Optional<SalonResource> findByIdAndSalonId(Long id, Long salonId);
 
-    //@Lock(LockModeType.PESSIMISTIC_WRITE)
-    //@Query("SELECT sr FROM SalonResource sr WHERE sr.salonId = :salonId")
-    //SalonResource lockSalonResource(@Param("salonId") Long salonId);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT sr FROM SalonResource sr WHERE sr.salonId = :salonId")
+    Optional<SalonResource> lockSalonResource(@Param("salonId") Long salonId);
 }

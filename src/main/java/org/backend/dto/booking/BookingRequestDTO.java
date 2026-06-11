@@ -30,6 +30,14 @@ public class BookingRequestDTO {
     @Schema(description = "Booking start time", example = "2026-06-04T10:00:00", requiredMode = Schema.RequiredMode.REQUIRED)
     private LocalDateTime startTime;
 
+    // if partner reject/not-respond then status explicitly set to FAILED
+    @Schema(description = "Booking status", example = "FAILED")
+    private String status;
+
+    // If the booking is rejected, this field can provide the reason for rejection
+    @Schema(description = "Reason for booking rejection", example = "Requested slot is not available")
+    private String rejectionReason;
+
     // If you later decide to include these fields, you can annotate them similarly:
     // @Schema(description = "Booking end time", example = "2026-06-04T11:30:00")
     // private LocalDateTime endTime;

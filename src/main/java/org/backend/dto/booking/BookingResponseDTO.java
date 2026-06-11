@@ -46,6 +46,9 @@ public class BookingResponseDTO {
     @Schema(description = "Payment provider used", example = "RAZORPAY")
     private String paymentProvider;
 
+    @Schema(description = "Payment status", example = "SUCCESS")
+    private String paymentStatus;
+
     @Schema(description = "Booking start time", example = "2026-06-04T10:00:00")
     private LocalDateTime startTime;
 

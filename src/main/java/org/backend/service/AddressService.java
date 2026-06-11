@@ -297,13 +297,15 @@ public class AddressService {
                         maxLon,
                         radiusKm
                 );
-        if (!addresses.isEmpty()) {
-            Long addressId = addresses.getFirst().getAddressId();
-            // Unselect all other addresses
-            addressRepository.resetSelectedForCustomer(customerId, addressId);
-            // Select the nearest address
-            addressRepository.updateSelectedAddress(addressId, true);
-        }
+
+//        if (!addresses.isEmpty()) {
+//            Long addressId = addresses.getFirst().getAddressId();
+//            // Unselect all other addresses
+//            addressRepository.resetSelectedForCustomer(customerId, addressId);
+//            // Select the nearest address
+//            addressRepository.updateSelectedAddress(addressId, true);
+//        }
+
         return addresses.stream()
                 .map(a -> AddressResponse.builder()
                         .addressId(a.getAddressId())
@@ -321,11 +323,9 @@ public class AddressService {
                         .addressType(a.getAddressType())
                         .labelName(a.getLabelName())
                         .isDefault(a.getIsDefault())
-                        .isSelected(true)
+                        .isSelected(a.getIsSelected())
                         .distance(Math.round(a.getDistanceKm() * 100.0) / 100.0)
                         .build())
                 .toList();
-
-
     }
 }

@@ -1,13 +1,19 @@
 package org.backend.dto.partner;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 @Data
 public class PartnerBookingStatusUpdateRequestDTO {
 
+    @Schema(description = "Unique identifier of the salon", example = "987")
     private Long salonId;
 
-    private String status;   // CONFIRMED / REJECTED
+    @Schema(description = "Status of the booking. Allowed values: CONFIRMED, REJECTED",
+            example = "CONFIRMED")
+    private String status;
 
-    private String reason;   // mandatory for REJECTED
+    @Schema(description = "Reason for rejection. Mandatory when status is REJECTED",
+            example = "Customer did not show up")
+    private String reason;
 }

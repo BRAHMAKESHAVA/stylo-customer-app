@@ -13,7 +13,6 @@ import org.backend.model.*;
 import org.backend.model.Package;
 import org.backend.repository.*;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -45,6 +44,29 @@ public class BookingService {
 
     @Value("${app.booking.slot-interval-minutes}")
     private int slotIntervalMinutes;
+
+    /*
+     * HELPERS
+     */
+    private static int getTotalDuration(List<Long> serviceIds, List<SalonService> services) {
+        if (services.isEmpty()) {
+            throw new BadRequestException("Services not found");
+        }
+
+        // Calculate Total Duration (respect duplicates in serviceIds)
+        Map<Long, Integer> durationMap = new HashMap<>(services.size());
+        for (SalonService s : services) {
+            durationMap.put(s.getServiceId(), s.getDurationMinutes());
+        }
+        int totalDuration = 0;
+        for (Long id : serviceIds) {
+            Integer d = durationMap.get(id);
+            if (d != null) {
+                totalDuration += d; // add duration for each occurrence of serviceId
+            }
+        }
+        return totalDuration;
+    }
 
     /**
      * CREATE BOOKING
@@ -114,16 +136,6 @@ public class BookingService {
                 throw new BadRequestException("Package contains invalid services");
             }
 
-//            List<String> duplicateServices = packageServices.stream()
-//                    .filter(service -> addOnServiceIds.contains(service.getServiceId()))
-//                    .map(SalonService::getServiceName)
-//                    .toList();
-//
-//            if (!duplicateServices.isEmpty()) {
-//                throw new BadRequestException(
-//                        STR."These services are already included in selected package: \{String.join(", ", duplicateServices)}");
-//            }
-
             grossAmount = grossAmount.add(pkg.getPackagePrice());
 
             for (SalonService service : packageServices) {
@@ -183,7 +195,8 @@ public class BookingService {
                 .discountAmount(pricing.discountAmount())
                 .finalAmount(pricing.finalAmount())
                 .partnerAmount(pricing.partnerAmount())
-                .status(BookingStatus.PAYMENT_PENDING.name())
+                .status(bookingReq.getStatus() != null ? bookingReq.getStatus() : BookingStatus.PAYMENT_PENDING.name())
+                .rejectionReason(bookingReq.getRejectionReason() != null ? bookingReq.getRejectionReason() : null)
                 .createdDate(LocalDateTime.now())
                 .updatedDate(LocalDateTime.now())
                 .build();
@@ -197,170 +210,6 @@ public class BookingService {
 
         return buildResponse(savedBooking);
     }
-
-//    /**
-//     * Creates a new booking for a customer.
-//     * - Validates request payload and prevents duplicate pending bookings.
-//     * - Handles both package and add-on service flows.
-//     * - Calculates pricing, duration, and slot availability.
-//     * - Persists booking, associated services, and payment record.
-//     *
-//     * @param bookingReq the booking request DTO
-//     * @return BookingResponseDTO containing booking details
-//     */
-//    @Transactional
-//    public BookingResponseDTO createBooking(BookingRequestDTO bookingReq) {
-//        // Validate request payload
-//        validateRequest(bookingReq);
-//
-//        PaymentMode paymentMode = PaymentMode.valueOf(bookingReq.getPaymentMode().toUpperCase());
-//
-//        // Idempotency check: prevent duplicate pending bookings for same slot
-//        Optional<Booking> existing = bookingRepo
-//                .findFirstByCustomerIdAndSalonIdAndStartTimeAndStatus(
-//                        bookingReq.getCustomerId(),
-//                        bookingReq.getSalonId(),
-//                        bookingReq.getStartTime(),
-//                        BookingStatus.PAYMENT_PENDING.name()
-//                );
-//
-//        if (existing.isPresent()) {
-//            Booking existingBooking = existing.get();
-//            if (existingBooking.getCreatedDate()
-//                    .isAfter(LocalDateTime.now().minusMinutes(paymentHoldMinutes))) {
-//                return buildResponse(existingBooking);
-//            }
-//        }
-//
-//        BigDecimal grossAmount = BigDecimal.ZERO;
-//        Long totalDuration = 0L;
-//        List<BookingServiceEntity> bookingServices = new ArrayList<>();
-//
-//        // Collect add-on service IDs
-//        Set<Long> addOnServiceIds = bookingReq.getServiceIds() == null
-//                ? Collections.emptySet()
-//                : new HashSet<>(bookingReq.getServiceIds());
-//
-//        /*
-//         * PACKAGE FLOW
-//         */
-//        if (bookingReq.getPackageId() != null) {
-//            Package pkg = packageRepository
-//                    .findByPackageIdAndSalonIdAndIsActiveTrue(bookingReq.getPackageId(), bookingReq.getSalonId())
-//                    .orElseThrow(() ->
-//                            new BadRequestException("Selected package is not available for this salon"));
-//
-//            List<PackageService> packageMappings = packageServiceRepository.findByPackageId(pkg.getPackageId());
-//            if (packageMappings.isEmpty()) {
-//                throw new BadRequestException("Selected package has no services configured");
-//            }
-//
-//            List<Long> packageServiceIds = packageMappings.stream()
-//                    .map(PackageService::getServiceId)
-//                    .toList();
-//
-//            List<SalonService> packageServices = serviceRepo.findAllById(packageServiceIds);
-//            if (packageServices.size() != packageServiceIds.size()) {
-//                throw new BadRequestException("Package contains invalid services");
-//            }
-//
-//            // Prevent duplicate services between package and add-ons
-//            List<String> duplicateServices = packageServices.stream()
-//                    .filter(service -> addOnServiceIds.contains(service.getServiceId()))
-//                    .map(SalonService::getServiceName)
-//                    .toList();
-//            if (!duplicateServices.isEmpty()) {
-//                throw new BadRequestException(
-//                        STR."These services are already included in selected package: \{String.join(", ", duplicateServices)}");
-//            }
-//
-//            grossAmount = grossAmount.add(pkg.getPackagePrice());
-//            for (SalonService service : packageServices) {
-//                totalDuration += service.getDurationMinutes();
-//                bookingServices.add(buildBookingService(service, BigDecimal.ZERO, BookingSourceType.PACKAGE));
-//            }
-//        }
-//
-//        /*
-//         * ADD-ON FLOW
-//         */
-//        if (!addOnServiceIds.isEmpty()) {
-//            List<SalonService> addOnServices = serviceRepo.findAllById(addOnServiceIds);
-//            if (addOnServices.size() != addOnServiceIds.size()) {
-//                throw new BadRequestException("One or more selected services are invalid");
-//            }
-//
-//            boolean invalidService = addOnServices.stream()
-//                    .anyMatch(service ->
-//                            !service.getSalonId().equals(bookingReq.getSalonId())
-//                                    || !Boolean.TRUE.equals(service.getIsActive()));
-//            if (invalidService) {
-//                throw new BadRequestException("Some selected services are unavailable for this salon");
-//            }
-//
-//            for (SalonService service : addOnServices) {
-//                grossAmount = grossAmount.add(service.getPrice());
-//                totalDuration += service.getDurationMinutes();
-//                bookingServices.add(buildBookingService(service, service.getPrice(), BookingSourceType.ADD_ON));
-//            }
-//        }
-//
-//        // Calculate booking times
-//        LocalDateTime startTime = bookingReq.getStartTime();
-//        LocalDateTime endTime = startTime.plusMinutes(totalDuration);
-//
-//        // Validate slot availability
-//        if (!checkSlotAvailable(bookingReq.getSalonId(), startTime, endTime)) {
-//            throw new BadRequestException("Selected slot is no longer available");
-//        }
-//
-//        // Pricing calculation
-//        PricingResult pricing = calculatePricing(grossAmount);
-//
-//        // Determine booking status based on payment mode
-//        String bookingStatus = paymentMode == PaymentMode.ONLINE
-//                ? BookingStatus.PAYMENT_PENDING.name()
-//                : BookingStatus.PENDING_PARTNER_CONFIRMATION.name();
-//
-//        // Build booking entity
-//        Booking booking = Booking.builder()
-//                .salonId(bookingReq.getSalonId())
-//                .customerId(bookingReq.getCustomerId())
-//                .packageId(bookingReq.getPackageId())
-//                .startTime(startTime)
-//                .endTime(endTime)
-//                .grossAmount(pricing.grossAmount())
-//                .platformFee(pricing.platformFee())
-//                .taxAmount(BigDecimal.ZERO)
-//                .discountAmount(pricing.discount())
-//                .finalAmount(pricing.finalAmount())
-//                .partnerAmount(pricing.partnerAmount())
-//                .status(bookingStatus)
-//                .createdDate(LocalDateTime.now())
-//                .updatedDate(LocalDateTime.now())
-//                .build();
-//
-//        Booking savedBooking = bookingRepo.save(booking);
-//
-//        // Link services to booking
-//        bookingServices.forEach(service -> service.setBookingId(savedBooking.getBookingId()));
-//        bsRepo.saveAll(bookingServices);
-//
-//        /*
-//         * PAYMENT RECORD
-//         */
-//        Payment payment = Payment.builder()
-//                .bookingId(savedBooking.getBookingId())
-//                .amount(pricing.finalAmount())
-//                .currency("INR")
-//                .status(PaymentStatus.PENDING.name())
-//                .provider(paymentMode == PaymentMode.ONLINE ? "RAZORPAY" : "PAY_AT_SALON")
-//                .build();
-//
-//        paymentRepo.save(payment);
-//
-//        return buildResponse(savedBooking);
-//    }
 
     /**
      * Cancels a booking and updates related entities.
@@ -473,6 +322,7 @@ public class BookingService {
             Payment payment = paymentMap.get(booking.getBookingId());
             if (payment != null) {
                 dto.setPaymentProvider(payment.getProvider());
+                dto.setPaymentStatus(payment.getStatus());
 
                 Map<String, String> refund = getRefundPreview(payment);
                 dto.setRefundAmount(refund.get("refundAmount"));
@@ -542,81 +392,160 @@ public class BookingService {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
         List<SlotResponseDTO> slots = new ArrayList<>();
 
-        while (!slot.plusMinutes(totalDuration).isAfter(closing)) {
+        //******************* OLD ******************
+        /**
+         while (!slot.plusMinutes(totalDuration).isAfter(closing)) {
+         LocalDateTime slotStart = slot;
+         LocalDateTime slotEnd = slot.plusMinutes(totalDuration);
+
+         SlotStatus status;
+
+         // Past Slot
+         if (date.equals(LocalDate.now()) && slotStart.isBefore(now)) {
+         status = SlotStatus.PAST;
+         } else {
+         // BOOKED RESOURCES: Booking occupies the slot start time
+         long bookedOverlap = bookings.stream()
+         .filter(b -> !BookingStatus.PAYMENT_PENDING.name().equals(b.getStatus()))
+         .filter(b -> !b.getStartTime().isAfter(slotStart) && b.getEndTime().isAfter(slotStart))
+         .count();
+
+         // HOLD RESOURCES: PAYMENT_PENDING + INITIATED
+         long holdOverlap = bookings.stream()
+         .filter(b -> BookingStatus.PAYMENT_PENDING.name().equals(b.getStatus()))
+         .filter(b -> activeHoldBookingIds.contains(b.getBookingId()))
+         .filter(b -> !b.getStartTime().isAfter(slotStart) && b.getEndTime().isAfter(slotStart))
+         .count();
+
+         // SERVICE FIT CHECK: Any booking starts inside service window
+         long intrudes = bookings.stream()
+         .filter(b -> !BookingStatus.PAYMENT_PENDING.name().equals(b.getStatus())
+         || activeHoldBookingIds.contains(b.getBookingId()))
+         .filter(b -> b.getStartTime().isAfter(slotStart) && b.getStartTime().isBefore(slotEnd))
+         .count();
+
+         // PRIORITY
+         long occupied = bookedOverlap + holdOverlap;
+
+         if (occupied >= totalResources) {
+         if (bookedOverlap > 0) {
+         status = SlotStatus.BOOKED;
+         } else {
+         status = SlotStatus.HOLD;
+         }
+         } else if (intrudes > 0) {
+         status = SlotStatus.UNAVAILABLE;
+         } else {
+         status = SlotStatus.AVAILABLE;
+         }
+         }
+
+         slots.add(new SlotResponseDTO(
+         slotStart.toLocalTime().format(formatter),
+         status
+         ));
+
+         slot = slot.plusMinutes(slotIntervalMinutes);
+         }
+
+         return slots;
+         **/
+        //******************* OLD ******************
+
+        // OLD
+// while (!slot.plusMinutes(totalDuration).isAfter(closing)) {
+
+// UPDATED
+        while (slot.isBefore(closing)) {
+
             LocalDateTime slotStart = slot;
             LocalDateTime slotEnd = slot.plusMinutes(totalDuration);
 
             SlotStatus status;
 
-            // Past Slot
+            // PAST
             if (date.equals(LocalDate.now()) && slotStart.isBefore(now)) {
                 status = SlotStatus.PAST;
             } else {
-                // BOOKED RESOURCES: Booking occupies the slot start time
-                long bookedOverlap = bookings.stream()
-                        .filter(b -> !BookingStatus.PAYMENT_PENDING.name().equals(b.getStatus()))
-                        .filter(b -> !b.getStartTime().isAfter(slotStart) && b.getEndTime().isAfter(slotStart))
+
+                // Count occupied resources at slot start
+                long occupied = bookings.stream()
+                        .filter(b ->
+                                activeStatuses.contains(b.getStatus())
+                                        || (
+                                        BookingStatus.PAYMENT_PENDING.name().equals(b.getStatus())
+                                                && activeHoldBookingIds.contains(b.getBookingId())
+                                ))
+                        .filter(b ->
+                                !b.getStartTime().isAfter(slotStart)
+                                        && b.getEndTime().isAfter(slotStart))
                         .count();
 
-                // HOLD RESOURCES: PAYMENT_PENDING + INITIATED
-                long holdOverlap = bookings.stream()
-                        .filter(b -> BookingStatus.PAYMENT_PENDING.name().equals(b.getStatus()))
-                        .filter(b -> activeHoldBookingIds.contains(b.getBookingId()))
-                        .filter(b -> !b.getStartTime().isAfter(slotStart) && b.getEndTime().isAfter(slotStart))
-                        .count();
-
-                // SERVICE FIT CHECK: Any booking starts inside service window
-                long intrudes = bookings.stream()
-                        .filter(b -> !BookingStatus.PAYMENT_PENDING.name().equals(b.getStatus())
-                                || activeHoldBookingIds.contains(b.getBookingId()))
-                        .filter(b -> b.getStartTime().isAfter(slotStart) && b.getStartTime().isBefore(slotEnd))
-                        .count();
-
-                // PRIORITY
-                if (bookedOverlap >= totalResources) {
+                // BOOKED
+                if (occupied >= totalResources) {
                     status = SlotStatus.BOOKED;
-                } else if (holdOverlap >= totalResources) {
-                    status = SlotStatus.HOLD;
-                } else if (intrudes > 0) {
-                    status = SlotStatus.UNAVAILABLE;
                 } else {
-                    status = SlotStatus.AVAILABLE;
+                    boolean durationFits = !slotEnd.isAfter(closing);
+
+                    // CASE 1 : Service exceeds salon closing
+
+                    // CASE 2 : Service exceeds next fully occupied period
+                    if (durationFits) {
+                        for (Booking booking : bookings) {
+
+                            boolean activeBooking =
+                                    activeStatuses.contains(booking.getStatus())
+                                            || (
+                                            BookingStatus.PAYMENT_PENDING.name().equals(booking.getStatus())
+                                                    && activeHoldBookingIds.contains(booking.getBookingId())
+                                    );
+
+                            if (!activeBooking) {
+                                continue;
+                            }
+
+                            long resourcesOccupiedAtBookingStart = bookings.stream()
+                                    .filter(b ->
+                                            activeStatuses.contains(b.getStatus())
+                                                    || (
+                                                    BookingStatus.PAYMENT_PENDING.name().equals(b.getStatus())
+                                                            && activeHoldBookingIds.contains(b.getBookingId())
+                                            ))
+                                    .filter(b ->
+                                            !b.getStartTime().isAfter(booking.getStartTime())
+                                                    && b.getEndTime().isAfter(booking.getStartTime()))
+                                    .count();
+
+                            // only consider times where all resources become occupied
+                            if (resourcesOccupiedAtBookingStart >= totalResources) {
+                                if (booking.getStartTime().isAfter(slotStart)
+                                        && booking.getStartTime().isBefore(slotEnd)) {
+                                    durationFits = false;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    if (!durationFits) {
+                        //status = SlotStatus.UNAVAILABLE;
+                        status = SlotStatus.AVAILABLE;
+                    } else {
+                        status = SlotStatus.AVAILABLE;
+                    }
                 }
             }
 
-            slots.add(new SlotResponseDTO(
-                    slotStart.toLocalTime().format(formatter),
-                    status
-            ));
+            slots.add(
+                    new SlotResponseDTO(
+                            slotStart.toLocalTime().format(formatter),
+                            status
+                    )
+            );
 
             slot = slot.plusMinutes(slotIntervalMinutes);
         }
-
         return slots;
-    }
-
-
-    /*
-     * HELPERS
-     */
-    private static int getTotalDuration(List<Long> serviceIds, List<SalonService> services) {
-        if (services.isEmpty()) {
-            throw new BadRequestException("Services not found");
-        }
-
-        // Calculate Total Duration (respect duplicates in serviceIds)
-        Map<Long, Integer> durationMap = new HashMap<>(services.size());
-        for (SalonService s : services) {
-            durationMap.put(s.getServiceId(), s.getDurationMinutes());
-        }
-        int totalDuration = 0;
-        for (Long id : serviceIds) {
-            Integer d = durationMap.get(id);
-            if (d != null) {
-                totalDuration += d; // add duration for each occurrence of serviceId
-            }
-        }
-        return totalDuration;
     }
 
     /**
@@ -672,7 +601,11 @@ public class BookingService {
      * @param end     requested booking end time
      * @return true if slot is available, false otherwise
      */
-    private boolean checkSlotAvailable(Long salonId, LocalDateTime start, LocalDateTime end) {
+    public boolean checkSlotAvailable(Long salonId, LocalDateTime start, LocalDateTime end) {
+        if (!start.isAfter(LocalDateTime.now())) {
+            throw new BadRequestException("Cannot book a past slot");
+        }
+
         // Load salon details
         SalonDetails salon = salonRepo.findById(salonId)
                 .orElseThrow(() -> new BadRequestException("Salon not found"));
@@ -695,12 +628,33 @@ public class BookingService {
         SalonResource resource = salonResourceRepo.findBySalonId(salonId)
                 .orElseThrow(() -> new BadRequestException("Salon resource config not found"));
 
-        // Count overlapping bookings within resource capacity
-        long overlappingCount = bookingRepo.countOverlappingBookings(
-                salonId, start, end, activeStatuses, LocalDateTime.now().minusMinutes(paymentHoldMinutes));
+        // Get overlapping bookings
+        List<Booking> overlappingBookings = bookingRepo.findOverlappingBookings(
+                salonId,
+                start,
+                end,
+                activeStatuses
+        );
+
+// Active HOLD bookings (Payment INITIATED within hold window)
+        Set<Long> activeHoldBookingIds = new HashSet<>(
+                paymentRepo.findActiveHoldBookingIds(
+                        LocalDateTime.now().minusMinutes(paymentHoldMinutes)
+                )
+        );
+
+        long occupied = overlappingBookings.stream()
+                .filter(booking ->
+                        activeStatuses.contains(booking.getStatus())
+                                || (
+                                BookingStatus.PAYMENT_PENDING.name().equals(booking.getStatus())
+                                        && activeHoldBookingIds.contains(booking.getBookingId())
+                        )
+                )
+                .count();
 
         //return !bookingRepo.existsOverlappingBooking(salonId, start, end, activeStatuses);
-        return overlappingCount < resource.getResourceCount();
+        return occupied < resource.getResourceCount();
     }
 
     /**
@@ -919,5 +873,6 @@ public class BookingService {
             BigDecimal taxAmount,
             BigDecimal finalAmount,
             BigDecimal partnerAmount
-    ) {}
+    ) {
+    }
 }

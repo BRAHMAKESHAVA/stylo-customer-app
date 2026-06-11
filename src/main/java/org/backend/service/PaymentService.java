@@ -23,6 +23,7 @@ import org.backend.model.PaymentRefund;
 import org.backend.repository.BookingRepository;
 import org.backend.repository.PaymentRefundRepository;
 import org.backend.repository.PaymentRepository;
+import org.backend.repository.SalonResourceRepository;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
@@ -50,6 +51,8 @@ public class PaymentService {
     private final BookingRepository bookingRepo;
     private final PaymentRepository paymentRepo;
     private final PaymentRefundRepository refundRepo;
+    private final BookingService bookingService;
+    private final SalonResourceRepository salonResourceRepo;
 
     @Value("${app.booking.payment-hold-minutes}")
     private int paymentHoldMinutes;
@@ -61,196 +64,71 @@ public class PaymentService {
     private String keySecret;
 
     /**
-     * SELECT PAYMENT MODE
-     *
-     * Called from the payment screen after booking is created.
-     * This is where the payment record is first created.
-     *
-     * PAY_AT_SALON → payment record created, booking moves to PENDING_PARTNER_CONFIRMATION
-     * ONLINE       → payment record created, booking stays PAYMENT_PENDING for Razorpay to complete
-     */
-//    public void selectPaymentMode(Long bookingId, String paymentModeStr) {
-//
-//        PaymentMode paymentMode;
-//        try {
-//            paymentMode = PaymentMode.valueOf(paymentModeStr.toUpperCase());
-//        } catch (IllegalArgumentException e) {
-//            throw new BadRequestException("Invalid payment mode. Allowed: ONLINE, PAY_AT_SALON");
-//        }
-//
-//        Booking booking = bookingRepo.findById(bookingId)
-//                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
-//
-//        // only PAYMENT_PENDING bookings can select a mode
-//        if (!BookingStatus.PAYMENT_PENDING.name().equals(booking.getStatus())) {
-//            throw new BadRequestException(
-//                    "Payment mode can only be selected for bookings awaiting payment");
-//        }
-//
-//        // guard against expired hold window
-//        if (booking.getCreatedDate()
-//                .isBefore(LocalDateTime.now().minusMinutes(paymentHoldMinutes))) {
-//            throw new BadRequestException("Booking hold has expired. Please rebook.");
-//        }
-//
-//        // idempotency — payment record already exists means mode was already selected
-//        if (paymentRepo.findByBookingId(bookingId).isPresent()) {
-//            throw new BadRequestException(
-//                    "Payment mode already selected for this booking. Proceed to payment.");
-//        }
-//
-//        Payment payment = paymentRepo.findByBookingId(bookingId)
-//                .orElseGet(() -> Payment.builder()
-//                        .bookingId(bookingId)
-//                        .amount(booking.getFinalAmount())
-//                        .currency("INR")
-//                        .status(PaymentStatus.PENDING.name())
-//                        .build());
-//
-//        if (paymentMode == PaymentMode.PAY_AT_SALON) {
-//
-//            /*
-//             * OFFLINE FLOW
-//             * Create payment record and immediately advance booking —
-//             * no Razorpay involved, partner confirms on their end.
-//             */
-//            payment.setProvider("PAY_AT_SALON");
-//            payment.setAmount(booking.getFinalAmount());
-//            payment.setStatus(PaymentStatus.PENDING.name());
-//
-//            paymentRepo.save(payment);
-//
-//            booking.setStatus(BookingStatus.PENDING_PARTNER_CONFIRMATION.name());
-//            booking.setUpdatedDate(LocalDateTime.now());
-//            bookingRepo.save(booking);
-//
-//        } else {
-//
-//            /*
-//             * ONLINE FLOW
-//             * Create payment record only — booking stays PAYMENT_PENDING
-//             * until Razorpay order is created and payment is verified.
-//             */
-//            payment.setProvider("RAZORPAY");
-//            payment.setAmount(booking.getFinalAmount());
-//            payment.setStatus(PaymentStatus.PENDING.name());
-//
-//            paymentRepo.save(payment);
-//        }
-//    }
-
-    /**
      * CONFIRM PAY AT SALON
      * Called when user clicks Proceed with Pay at Salon selected.
      * Creates payment record and moves booking to PENDING_PARTNER_CONFIRMATION.
      */
+    @Transactional
     public void confirmPayAtSalon(Long bookingId) {
 
         Booking booking = bookingRepo.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+
+        // Lock the salon resource to prevent concurrent bookings for the same slot
+        salonResourceRepo.lockSalonResource(booking.getSalonId());
+
+        // Final availability check
+        if (!bookingService.checkSlotAvailable(
+                booking.getSalonId(),
+                booking.getStartTime(),
+                booking.getEndTime())) {
+
+            throw new BadRequestException(
+                    "This slot was booked by another customer. Please select a different slot.");
+        }
 
         if (booking.getCreatedDate()
                 .isBefore(LocalDateTime.now().minusMinutes(paymentHoldMinutes))) {
             throw new BadRequestException("Booking hold has expired. Please rebook.");
         }
 
-        Payment payment = Payment.builder()
-                .bookingId(bookingId)
-                .amount(booking.getFinalAmount())
-                .currency("INR")
-                .status(PaymentStatus.PENDING.name())
-                .provider("OFFLINE") //OFFLINE
-                .build();
+        Payment payment = paymentRepo.findByBookingId(bookingId)
+                .orElseGet(() -> Payment.builder()
+                        .bookingId(bookingId)
+                        .amount(booking.getFinalAmount())
+                        .currency("INR")
+                        .build());
+
+        payment.setStatus(PaymentStatus.PENDING.name());
+        payment.setProvider("OFFLINE");
 
         paymentRepo.save(payment);
 
-        booking.setStatus(BookingStatus.PENDING_PARTNER_CONFIRMATION.name());
-        booking.setUpdatedDate(LocalDateTime.now());
+        //booking.setStatus(BookingStatus.PENDING_PARTNER_CONFIRMATION.name());
+        booking.setStatus(BookingStatus.CONFIRMED.name());
+        //booking.setUpdatedDate(LocalDateTime.now());
         bookingRepo.save(booking);
     }
-
-    /**
-     * Creates a Razorpay order for a given booking.
-     * Validates booking/payment, ensures Razorpay provider, and prevents duplicate payments.
-     *
-     * @param bookingId the booking identifier
-     * @return RazorpayOrderResponseDTO containing order details
-     */
-//    @Transactional
-//    public RazorpayOrderResponseDTO createOrder(Long bookingId) {
-//        Booking booking = bookingRepo.findById(bookingId)
-//                .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + bookingId));
-//
-//        Payment payment = paymentRepo.findByBookingId(bookingId).orElse(null);
-//
-//        if (payment != null && PaymentStatus.SUCCESS.name().equals(payment.getStatus())) {
-//            throw new BadRequestException("Payment already completed for booking: " + bookingId);
-//        }
-//
-//        if (payment != null && payment.getProviderOrderId() != null &&
-//                PaymentStatus.INITIATED.name().equals(payment.getStatus())) {
-//            return new RazorpayOrderResponseDTO(
-//                    keyId,
-//                    payment.getProviderOrderId(),
-//                    booking.getFinalAmount().multiply(BigDecimal.valueOf(100)).longValue(),
-//                    "INR"
-//            );
-//        }
-//
-//        try {
-//            RazorpayClient client = new RazorpayClient(keyId, keySecret);
-//            long amountInPaise = booking.getFinalAmount().multiply(BigDecimal.valueOf(100)).longValue();
-//
-//            JSONObject options = new JSONObject();
-//            options.put("amount", amountInPaise);
-//            options.put("currency", "INR");
-//            options.put("receipt", "BK-" + bookingId);
-//
-//            JSONObject notes = new JSONObject();
-//            notes.put("bookingId", bookingId);
-//            options.put("notes", notes);
-//
-//            Order order = client.orders.create(options);
-//
-//            if (payment == null) {
-//                payment = Payment.builder()
-//                        .bookingId(bookingId)
-//                        .amount(booking.getFinalAmount())
-//                        .currency("INR")
-//                        .provider("RAZORPAY")
-//                        .status(PaymentStatus.INITIATED.name())
-//                        .providerOrderId(order.get("id").toString())
-//                        .build();
-//            } else {
-//                // Retry payment
-//                payment.setProvider("RAZORPAY");
-//                payment.setProviderOrderId(order.get("id").toString());
-//                payment.setProviderPaymentId(null);
-//                payment.setProviderSignature(null);
-//                payment.setStatus(PaymentStatus.INITIATED.name());
-//
-//            }
-//
-//            paymentRepo.save(payment);
-//
-//            return new RazorpayOrderResponseDTO(
-//                    keyId,
-//                    order.get("id").toString(),
-//                    ((Number) order.get("amount")).longValue(),
-//                    order.get("currency").toString()
-//            );
-//
-//        } catch (RazorpayException e) {
-//            log.error("Error creating Razorpay order | bookingId={}", bookingId, e);
-//            throw new PaymentGatewayException("Error creating Razorpay order for booking: " + bookingId, e);
-//        }
-//    }
 
     //============START===============
     @Transactional
     public RazorpayOrderResponseDTO createOrder(Long bookingId) {
+
         Booking booking = bookingRepo.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + bookingId));
+
+        // Lock the salon resource to prevent concurrent bookings for the same slot
+        salonResourceRepo.lockSalonResource(booking.getSalonId());
+
+        // Final availability check
+        if (!bookingService.checkSlotAvailable(
+                booking.getSalonId(),
+                booking.getStartTime(),
+                booking.getEndTime())) {
+
+            throw new BadRequestException(
+                    "This slot was booked by another customer. Please select a different slot.");
+        }
 
         if (!BookingStatus.PAYMENT_PENDING.name().equals(booking.getStatus())) {
             throw new BadRequestException("Booking has expired. Please select a slot again.");
@@ -286,8 +164,9 @@ public class PaymentService {
                         paymentRepo.save(payment);
 
                         if (BookingStatus.PAYMENT_PENDING.name().equals(booking.getStatus())) {
-                            booking.setStatus(BookingStatus.PENDING_PARTNER_CONFIRMATION.name());
-                            booking.setUpdatedDate(now);
+                            //booking.setStatus(BookingStatus.PENDING_PARTNER_CONFIRMATION.name());
+                            booking.setStatus(BookingStatus.CONFIRMED.name());
+                            //booking.setUpdatedDate(now);
                             bookingRepo.save(booking);
                         }
 
@@ -321,8 +200,9 @@ public class PaymentService {
                         paymentRepo.save(payment);
 
                         if (BookingStatus.PAYMENT_PENDING.name().equals(booking.getStatus())) {
-                            booking.setStatus(BookingStatus.PENDING_PARTNER_CONFIRMATION.name());
-                            booking.setUpdatedDate(now);
+                            //booking.setStatus(BookingStatus.PENDING_PARTNER_CONFIRMATION.name());
+                            booking.setStatus(BookingStatus.CONFIRMED.name());
+                            //booking.setUpdatedDate(now);
                             bookingRepo.save(booking);
                         }
 
@@ -458,8 +338,9 @@ public class PaymentService {
         payment.setUpdatedDate(LocalDateTime.now());
         paymentRepo.save(payment);
 
-        booking.setStatus(BookingStatus.PENDING_PARTNER_CONFIRMATION.name());
-        booking.setUpdatedDate(LocalDateTime.now());
+        //booking.setStatus(BookingStatus.PENDING_PARTNER_CONFIRMATION.name());
+        booking.setStatus(BookingStatus.CONFIRMED.name());
+        //booking.setUpdatedDate(LocalDateTime.now());
         bookingRepo.save(booking);
 
         log.info("Payment verified successfully | bookingId={}, paymentId={}", bookingId, dto.getRazorpayPaymentId());

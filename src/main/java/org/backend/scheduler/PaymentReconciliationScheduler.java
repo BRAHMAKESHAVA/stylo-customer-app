@@ -34,7 +34,7 @@ public class PaymentReconciliationScheduler {
     @Value("${app.booking.payment-hold-minutes}")
     private int paymentHoldMinutes;
 
-    @Scheduled(fixedRate = 30000) // every 30 seconds
+    @Scheduled(fixedRate = 3000) // every 3 seconds
     @Transactional
     public void reconcileInitiatedPayments() {
         LocalDateTime now = LocalDateTime.now();
@@ -95,8 +95,9 @@ public class PaymentReconciliationScheduler {
                             Booking booking = bookingRepo.findById(payment.getBookingId()).orElse(null);
                             if (booking != null &&
                                     BookingStatus.PAYMENT_PENDING.name().equals(booking.getStatus())) {
-                                booking.setStatus(BookingStatus.PENDING_PARTNER_CONFIRMATION.name());
-                                booking.setUpdatedDate(now);
+                                //booking.setStatus(BookingStatus.PENDING_PARTNER_CONFIRMATION.name());
+                                booking.setStatus(BookingStatus.CONFIRMED.name());
+                                //booking.setUpdatedDate(now);
                                 bookingRepo.save(booking);
                             }
 

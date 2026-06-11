@@ -2,6 +2,7 @@ package org.backend.service;
 
 import lombok.RequiredArgsConstructor;
 import org.backend.dto.RefundResultDTO;
+import org.backend.dto.partner.BookingApprovalResponse;
 import org.backend.dto.partner.PartnerBookingPendingResponseDTO;
 import org.backend.dto.partner.PartnerBookingStatusResponseDTO;
 import org.backend.dto.partner.PartnerBookingStatusUpdateRequestDTO;
@@ -11,8 +12,10 @@ import org.backend.enums.PaymentMode;
 import org.backend.enums.PaymentStatus;
 import org.backend.exception.BadRequestException;
 import org.backend.model.Booking;
+import org.backend.model.BookingApproval;
 import org.backend.model.BookingServiceEntity;
 import org.backend.model.Payment;
+import org.backend.repository.BookingApprovalRepository;
 import org.backend.repository.BookingRepository;
 import org.backend.repository.BookingServiceRepository;
 import org.backend.repository.PaymentRepository;
@@ -33,6 +36,20 @@ public class PartnerBookingService {
     private final BookingServiceRepository bookingServiceRepository;
     private final PaymentRepository paymentRepository;
     private final PaymentService paymentService;
+    private final BookingApprovalRepository approvalRepository;
+
+    public List<BookingApprovalResponse> getBookingsForApproval() {
+
+        List<BookingApproval> bookings =
+                approvalRepository.findByApprovalStatusOrderByCreatedAtDesc(
+                        BookingStatus.PENDING_PARTNER_CONFIRMATION.name()
+                );
+
+        System.out.println("Records found: " + bookings.size());
+        return bookings.stream()
+                .map(this::buildResponse)
+                .toList();
+    }
 
     /*
      * GET PENDING BOOKINGS
@@ -356,5 +373,21 @@ public class PartnerBookingService {
 
     private List<BookingServiceEntity> getBookingServices(Long bookingId) {
         return bookingServiceRepository.findByBookingId(bookingId);
+    }
+
+    // Reusable mapper method
+    private BookingApprovalResponse buildResponse(BookingApproval approval) {
+        return BookingApprovalResponse.builder()
+                .approvalId(approval.getApprovalId())
+                .customerId(approval.getCustomerId())
+                .bookingId(approval.getBookingId())
+                .serviceDuration(approval.getServiceDuration())
+                .slotDate(approval.getSlotDate())
+                .slotStartTime(approval.getSlotStartTime())
+                .workingEndTime(approval.getWorkingEndTime())
+                .approvalStatus(approval.getApprovalStatus())
+                .remarks(approval.getRemarks())
+                .createdAt(approval.getCreatedAt())
+                .build();
     }
 }

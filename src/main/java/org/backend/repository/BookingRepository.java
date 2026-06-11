@@ -28,7 +28,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByStatusOrderByCreatedDateDesc(String status);
 
 
-    @Query("SELECT b FROM Booking b WHERE b.customerId = ?1 AND b.status <> 'PENDING'")
+    @Query("SELECT b FROM Booking b WHERE b.customerId = ?1 AND b.status <> 'PENDING' ORDER BY b.createdDate DESC")
     List<Booking> findByCustomerId(Long customerId);
 
     List<Booking> findBySalonId(Long salonId);
@@ -115,5 +115,23 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("end") LocalDateTime end,
             @Param("statuses") List<String> statuses,
             @Param("pendingCutoff") LocalDateTime pendingCutoff
+    );
+
+    @Query("""
+        SELECT b
+        FROM Booking b
+        WHERE b.salonId = :salonId
+        AND b.startTime < :end
+        AND b.endTime > :start
+        AND (
+            b.status IN :statuses
+            OR b.status = 'PAYMENT_PENDING'
+        )
+       """)
+    List<Booking> findOverlappingBookings(
+            @Param("salonId") Long salonId,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end,
+            @Param("statuses") List<String> statuses
     );
 }

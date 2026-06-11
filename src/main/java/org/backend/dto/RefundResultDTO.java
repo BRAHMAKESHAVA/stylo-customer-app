@@ -12,7 +12,6 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @NoArgsConstructor
 public class RefundResultDTO {
-
     private BigDecimal refundAmount;
     private String paymentStatus;
     private String providerRefundId;
