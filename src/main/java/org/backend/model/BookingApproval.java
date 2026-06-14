@@ -7,6 +7,7 @@ import org.backend.enums.BookingStatus;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "booking_approval")
@@ -26,7 +27,7 @@ public class BookingApproval {
     private Long customerId;
 
     @Column(name = "booking_id")
-    private Long bookingId;
+    private UUID bookingId;
 
     @Column(name = "service_duration", nullable = false)
     private Integer serviceDuration;

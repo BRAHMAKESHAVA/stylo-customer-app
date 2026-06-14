@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @AllArgsConstructor
@@ -20,7 +21,7 @@ import java.time.LocalDateTime;
 public class BookingResponseDTO {
 
     @Schema(description = "Unique identifier of the booking", example = "1001")
-    private Long bookingId;
+    private UUID bookingId;
 
     @Schema(description = "Gross amount before deductions", example = "2000.00")
     private BigDecimal grossAmount;
@@ -75,7 +76,7 @@ public class BookingResponseDTO {
 
 // Constructor for your current usage
     public BookingResponseDTO(
-            Long bookingId,
+            UUID bookingId,
             BigDecimal grossAmount,
             BigDecimal platformFee,
             BigDecimal discountAmount,

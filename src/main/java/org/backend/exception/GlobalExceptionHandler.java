@@ -42,6 +42,18 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.METHOD_NOT_ALLOWED);
     }
 
+    @ExceptionHandler(NotificationException.class)
+    public ResponseEntity<ErrorResponseDTO> handleNotificationException(
+            NotificationException ex) {
+
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(build(
+                        HttpStatus.SERVICE_UNAVAILABLE,
+                        "NOTIFICATION_ERROR",
+                        ex.getMessage()
+                ));
+    }
+
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public ResponseEntity<ErrorResponseDTO> handleUnsupportedMediaType(HttpMediaTypeNotSupportedException ex) {
         log.warn("Unsupported media type | Error: {}", ex.getMessage());

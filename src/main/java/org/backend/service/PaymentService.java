@@ -8,6 +8,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.backend.dto.RefundResultDTO;
+import org.backend.dto.booking.BookingResponseDTO;
 import org.backend.dto.request.RazorpayVerifyPaymentRequestDTO;
 import org.backend.dto.response.RazorpayOrderResponseDTO;
 import org.backend.enums.BookingStatus;
@@ -38,10 +39,7 @@ import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -53,6 +51,9 @@ public class PaymentService {
     private final PaymentRefundRepository refundRepo;
     private final BookingService bookingService;
     private final SalonResourceRepository salonResourceRepo;
+    private final PartnerWebSocketService partnerWebSocketService;
+    private final NotificationService notificationService;
+
 
     @Value("${app.booking.payment-hold-minutes}")
     private int paymentHoldMinutes;
@@ -69,7 +70,7 @@ public class PaymentService {
      * Creates payment record and moves booking to PENDING_PARTNER_CONFIRMATION.
      */
     @Transactional
-    public void confirmPayAtSalon(Long bookingId) {
+    public void confirmPayAtSalon(UUID bookingId) {
 
         Booking booking = bookingRepo.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
@@ -108,11 +109,22 @@ public class PaymentService {
         booking.setStatus(BookingStatus.CONFIRMED.name());
         //booking.setUpdatedDate(LocalDateTime.now());
         bookingRepo.save(booking);
+
+        // Notify customer about booking confirmation and next steps
+        BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
+
+        partnerWebSocketService.notifyCustomer(
+                booking.getCustomerId(),
+                bookingResponse
+        );
+        // Notify customer via push notification
+        notificationService.sendBookingCreatedToCustomer(booking.getCustomerId(), bookingResponse);
+
     }
 
     //============START===============
     @Transactional
-    public RazorpayOrderResponseDTO createOrder(Long bookingId) {
+    public RazorpayOrderResponseDTO createOrder(UUID bookingId) {
 
         Booking booking = bookingRepo.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + bookingId));
@@ -149,17 +161,16 @@ public class PaymentService {
             if (payment != null && PaymentStatus.INITIATED.name().equals(payment.getStatus())
                     && payment.getProviderOrderId() != null) {
 
-                Order existingOrder = client.orders.fetch(payment.getProviderOrderId());
-                JSONArray payments = existingOrder.get("payments");
+                List<com.razorpay.Payment> existingRazorpayPayments =
+                        client.orders.fetchPayments(payment.getProviderOrderId());
 
-                for (int i = 0; i < payments.length(); i++) {
-                    JSONObject rpPayment = payments.getJSONObject(i);
-                    String status = rpPayment.getString("status");
+                for (com.razorpay.Payment rpPayment : existingRazorpayPayments) {
+                    String status = rpPayment.get("status").toString();
 
                     if ("captured".equalsIgnoreCase(status)) { //|| "authorized".equalsIgnoreCase(status)
-                        payment.setProviderPaymentId(rpPayment.getString("id"));
+                        payment.setProviderPaymentId(rpPayment.get("id").toString());
                         payment.setStatus(PaymentStatus.SUCCESS.name());
-                        payment.setPaymentMethod(rpPayment.optString("method", null));
+                        payment.setPaymentMethod(rpPayment.has("method") ? rpPayment.get("method").toString() : null);
                         payment.setUpdatedDate(now);
                         paymentRepo.save(payment);
 
@@ -168,6 +179,13 @@ public class PaymentService {
                             booking.setStatus(BookingStatus.CONFIRMED.name());
                             //booking.setUpdatedDate(now);
                             bookingRepo.save(booking);
+
+                            // Notify customer about booking confirmation and next steps
+                            BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
+                            partnerWebSocketService.notifyCustomer(
+                                    booking.getCustomerId(),
+                                    bookingResponse
+                            );
                         }
 
                         throw new BadRequestException("Payment already completed for booking: " + bookingId);
@@ -204,6 +222,13 @@ public class PaymentService {
                             booking.setStatus(BookingStatus.CONFIRMED.name());
                             //booking.setUpdatedDate(now);
                             bookingRepo.save(booking);
+
+                            // Notify customer about booking confirmation and next steps
+                            BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
+                            partnerWebSocketService.notifyCustomer(
+                                    booking.getCustomerId(),
+                                    bookingResponse
+                            );
                         }
 
                         throw new BadRequestException("Payment already completed for booking: " + bookingId);
@@ -271,7 +296,7 @@ public class PaymentService {
      * @throws RazorpayException if Razorpay API call fails
      */
     @Transactional
-    public void verifyPayment(Long bookingId, RazorpayVerifyPaymentRequestDTO dto) throws RazorpayException {
+    public void verifyPayment(UUID bookingId, RazorpayVerifyPaymentRequestDTO dto) throws RazorpayException {
         if (paymentRepo.existsByProviderPaymentId(dto.getRazorpayPaymentId())) {
             log.info("Payment already verified | bookingId={}, paymentId={}", bookingId, dto.getRazorpayPaymentId());
             return;
@@ -310,6 +335,14 @@ public class PaymentService {
             booking.setStatus(BookingStatus.PAYMENT_FAILED.name());
             booking.setUpdatedDate(LocalDateTime.now());
             bookingRepo.save(booking);
+
+            // Notify customer about payment failure and next steps
+            BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
+            partnerWebSocketService.notifyCustomer(
+                    booking.getCustomerId(),
+                    bookingResponse
+            );
+
             throw new BadRequestException("Payment not captured");
         }
 
@@ -343,6 +376,13 @@ public class PaymentService {
         //booking.setUpdatedDate(LocalDateTime.now());
         bookingRepo.save(booking);
 
+        // Notify customer about booking confirmation and next steps
+        BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
+        partnerWebSocketService.notifyCustomer(
+                booking.getCustomerId(),
+                bookingResponse
+        );
+
         log.info("Payment verified successfully | bookingId={}, paymentId={}", bookingId, dto.getRazorpayPaymentId());
     }
 
@@ -354,7 +394,7 @@ public class PaymentService {
      * @param bookingId the booking identifier
      */
     @Transactional
-    public void markPaymentFailed(Long bookingId) {
+    public void markPaymentFailed(UUID bookingId) {
         Booking booking = bookingRepo.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
 
@@ -390,7 +430,7 @@ public class PaymentService {
      * @return RefundResultDTO containing refund details
      */
     @Transactional
-    public RefundResultDTO refundPayment(Long bookingId, String reason) {
+    public RefundResultDTO refundPayment(UUID bookingId, String reason) {
         Booking booking = bookingRepo.findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
 

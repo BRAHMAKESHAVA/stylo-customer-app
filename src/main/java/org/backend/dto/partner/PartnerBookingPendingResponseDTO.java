@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -23,7 +24,7 @@ import java.util.List;
 public class PartnerBookingPendingResponseDTO {
 
     @Schema(description = "Unique identifier of the booking", example = "1001")
-    private Long bookingId;
+    private UUID bookingId;
 
     @Schema(description = "Unique identifier of the customer", example = "2001")
     private Long customerId;

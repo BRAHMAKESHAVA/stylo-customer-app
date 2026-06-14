@@ -38,6 +38,7 @@ public class BookingService {
     private final PackageRepository packageRepository;
     private final SalonResourceRepository salonResourceRepo;
     private final AuthService authService;
+    private final PartnerWebSocketService partnerWebSocketService;
 
     @Value("${app.booking.payment-hold-minutes}")
     private int paymentHoldMinutes;
@@ -208,7 +209,17 @@ public class BookingService {
 
         // no payment record created here — done in selectPaymentMode()
 
-        return buildResponse(savedBooking);
+        //return buildResponse(savedBooking);
+        BookingResponseDTO bookingResponse = buildResponse(savedBooking);
+
+        // Notify customer of new booking creation
+        partnerWebSocketService.notifyCustomer(
+                booking.getCustomerId(),
+                bookingResponse
+        );
+
+        return bookingResponse;
+
     }
 
     /**
@@ -220,7 +231,7 @@ public class BookingService {
      * @param bookingId the booking identifier
      */
     @Transactional
-    public void cancelBooking(Long bookingId) {
+    public void cancelBooking(UUID bookingId) {
         // Load booking
         Booking booking = bookingRepo.findById(bookingId)
                 .orElseThrow(() -> new BadRequestException("Booking not found"));
@@ -243,6 +254,13 @@ public class BookingService {
         booking.setStatus(BookingStatus.CANCELLED.name());
         booking.setUpdatedDate(LocalDateTime.now());
         bookingRepo.save(booking);
+
+        // Notify customer of new booking creation
+        BookingResponseDTO bookingResponse = buildResponse(booking);
+        partnerWebSocketService.notifyCustomer(
+                booking.getCustomerId(),
+                bookingResponse
+        );
 
         // Cancel associated services
         List<BookingServiceEntity> services = bsRepo.findByBookingId(bookingId);
@@ -280,7 +298,7 @@ public class BookingService {
                 .map(Booking::getSalonId)
                 .toList();
 
-        List<Long> bookingIds = bookings.stream()
+        List<UUID> bookingIds = bookings.stream()
                 .map(Booking::getBookingId)
                 .toList();
 
@@ -293,7 +311,7 @@ public class BookingService {
                 ));
 
         // Map payments by bookingId
-        Map<Long, Payment> paymentMap = paymentRepo.findByBookingIdIn(bookingIds)
+        Map<UUID, Payment> paymentMap = paymentRepo.findByBookingIdIn(bookingIds)
                 .stream()
                 .collect(Collectors.toMap(
                         Payment::getBookingId,
@@ -392,70 +410,6 @@ public class BookingService {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
         List<SlotResponseDTO> slots = new ArrayList<>();
 
-        //******************* OLD ******************
-        /**
-         while (!slot.plusMinutes(totalDuration).isAfter(closing)) {
-         LocalDateTime slotStart = slot;
-         LocalDateTime slotEnd = slot.plusMinutes(totalDuration);
-
-         SlotStatus status;
-
-         // Past Slot
-         if (date.equals(LocalDate.now()) && slotStart.isBefore(now)) {
-         status = SlotStatus.PAST;
-         } else {
-         // BOOKED RESOURCES: Booking occupies the slot start time
-         long bookedOverlap = bookings.stream()
-         .filter(b -> !BookingStatus.PAYMENT_PENDING.name().equals(b.getStatus()))
-         .filter(b -> !b.getStartTime().isAfter(slotStart) && b.getEndTime().isAfter(slotStart))
-         .count();
-
-         // HOLD RESOURCES: PAYMENT_PENDING + INITIATED
-         long holdOverlap = bookings.stream()
-         .filter(b -> BookingStatus.PAYMENT_PENDING.name().equals(b.getStatus()))
-         .filter(b -> activeHoldBookingIds.contains(b.getBookingId()))
-         .filter(b -> !b.getStartTime().isAfter(slotStart) && b.getEndTime().isAfter(slotStart))
-         .count();
-
-         // SERVICE FIT CHECK: Any booking starts inside service window
-         long intrudes = bookings.stream()
-         .filter(b -> !BookingStatus.PAYMENT_PENDING.name().equals(b.getStatus())
-         || activeHoldBookingIds.contains(b.getBookingId()))
-         .filter(b -> b.getStartTime().isAfter(slotStart) && b.getStartTime().isBefore(slotEnd))
-         .count();
-
-         // PRIORITY
-         long occupied = bookedOverlap + holdOverlap;
-
-         if (occupied >= totalResources) {
-         if (bookedOverlap > 0) {
-         status = SlotStatus.BOOKED;
-         } else {
-         status = SlotStatus.HOLD;
-         }
-         } else if (intrudes > 0) {
-         status = SlotStatus.UNAVAILABLE;
-         } else {
-         status = SlotStatus.AVAILABLE;
-         }
-         }
-
-         slots.add(new SlotResponseDTO(
-         slotStart.toLocalTime().format(formatter),
-         status
-         ));
-
-         slot = slot.plusMinutes(slotIntervalMinutes);
-         }
-
-         return slots;
-         **/
-        //******************* OLD ******************
-
-        // OLD
-// while (!slot.plusMinutes(totalDuration).isAfter(closing)) {
-
-// UPDATED
         while (slot.isBefore(closing)) {
 
             LocalDateTime slotStart = slot;
@@ -613,7 +567,7 @@ public class BookingService {
         // Validate requested time against salon working hours
         LocalDateTime salonOpen = salon.getWorkingHoursStart().atDate(start.toLocalDate());
         LocalDateTime salonClose = salon.getWorkingHoursEnd().atDate(start.toLocalDate());
-        if (start.isBefore(salonOpen) || end.isAfter(salonClose)) {
+        if (start.isBefore(salonOpen)) { //  || end.isAfter(salonClose)
             return false;
         }
 
@@ -683,7 +637,6 @@ public class BookingService {
         BigDecimal platformFee = BigDecimal.valueOf(15);
 
         BigDecimal commissionPercentage = BigDecimal.ZERO;
-
 
         // 0% commission retained by platform
         BigDecimal commissionAmount = grossAmount
@@ -777,7 +730,7 @@ public class BookingService {
      * @param booking the booking entity
      * @return BookingResponseDTO containing booking details and computed duration
      */
-    private BookingResponseDTO buildResponse(Booking booking) {
+    public BookingResponseDTO buildResponse(Booking booking) {
         // Calculate total duration in minutes
         Long totalDuration = Duration.between(
                 booking.getStartTime(),

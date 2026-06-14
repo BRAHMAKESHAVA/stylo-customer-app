@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -17,7 +18,7 @@ import java.math.BigDecimal;
 public class PartnerBookingStatusResponseDTO {
 
     @Schema(description = "Unique identifier of the booking", example = "12345")
-    private Long bookingId;
+    private UUID bookingId;
 
     @Schema(description = "Current status of the booking", example = "CONFIRMED")
     private String bookingStatus;

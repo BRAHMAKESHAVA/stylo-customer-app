@@ -10,6 +10,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "booking")
@@ -20,9 +21,9 @@ import java.time.LocalDateTime;
 public class Booking {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "booking_id")
-    private Long bookingId;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "booking_id", nullable = false, updatable = false)
+    private UUID bookingId;
 
     @Column(name = "salon_id", nullable = false)
     private Long salonId;

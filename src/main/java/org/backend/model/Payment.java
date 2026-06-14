@@ -7,6 +7,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "payment")
@@ -23,7 +24,7 @@ public class Payment {
     private Long paymentId;
 
     @Column(name = "booking_id", nullable = false)
-    private Long bookingId;
+    private UUID bookingId;
 
     @Column(name = "amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;

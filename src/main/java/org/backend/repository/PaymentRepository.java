@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
@@ -17,11 +18,11 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     Optional<Payment> findByProviderPaymentId(String providerPaymentId);
 
-    Optional<Payment> findByBookingId(Long bookingId);
+    Optional<Payment> findByBookingId(UUID bookingId);
 
     boolean existsByProviderPaymentId(String razorpayOrderId);
 
-    List<Payment> findByBookingIdIn(List<Long> bookingIds);
+    List<Payment> findByBookingIdIn(List<UUID> bookingIds);
 
     /**
      * Find all payments with a given status created before a cutoff time.

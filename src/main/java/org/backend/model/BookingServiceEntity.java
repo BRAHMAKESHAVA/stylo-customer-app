@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 @Entity
 @Table(name = "booking_service")
@@ -22,7 +23,7 @@ public class BookingServiceEntity {
     private Long id;
 
     @Column(name = "booking_id")
-    private Long bookingId;
+    private UUID bookingId;
 
     @Column(name = "service_id")
     private Long serviceId;

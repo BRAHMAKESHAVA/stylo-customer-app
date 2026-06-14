@@ -6,6 +6,7 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "review")
@@ -19,7 +20,7 @@ public class Review {
     private Long reviewId;
 
     @Column(name = "booking_id", nullable = false)
-    private Long bookingId;
+    private UUID bookingId;
 
     @Column(name = "salon_id", nullable = false)
     private Long salonId;

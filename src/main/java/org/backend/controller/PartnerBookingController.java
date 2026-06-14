@@ -16,6 +16,7 @@ import org.backend.service.PartnerBookingService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * REST controller for partner-side booking management.
@@ -214,7 +215,7 @@ public class PartnerBookingController {
     })
     public ApiResponseDTO<PartnerBookingStatusResponseDTO> updateBookingStatus(
             @Parameter(description = "Unique identifier of the booking to confirm or reject")
-            @PathVariable Long bookingId,
+            @PathVariable UUID bookingId,
             @Parameter(description = "Request body with status ('CONFIRMED' or 'REJECTED') and optional rejection reason")
             @RequestBody PartnerBookingStatusUpdateRequestDTO req) {
 
@@ -288,7 +289,7 @@ public class PartnerBookingController {
     })
     public ApiResponseDTO<PartnerBookingStatusResponseDTO> markPaymentCollected(
             @Parameter(description = "Unique identifier of the booking for which payment was collected")
-            @PathVariable Long bookingId) {
+            @PathVariable UUID bookingId) {
 
         PartnerBookingStatusResponseDTO response = partnerBookingService.markPaymentCollected(bookingId);
 
@@ -357,7 +358,7 @@ public class PartnerBookingController {
     })
     public ApiResponseDTO<PartnerBookingStatusResponseDTO> startService(
             @Parameter(description = "Unique identifier of the booking to start")
-            @PathVariable Long bookingId) {
+            @PathVariable UUID bookingId) {
 
         PartnerBookingStatusResponseDTO response = partnerBookingService.startService(bookingId);
 
@@ -428,7 +429,7 @@ public class PartnerBookingController {
     })
     public ApiResponseDTO<PartnerBookingStatusResponseDTO> completeService(
             @Parameter(description = "Unique identifier of the booking to complete")
-            @PathVariable Long bookingId) {
+            @PathVariable UUID bookingId) {
 
         PartnerBookingStatusResponseDTO response = partnerBookingService.completeService(bookingId);
 
@@ -490,7 +491,7 @@ public class PartnerBookingController {
     })
     public ApiResponseDTO<PartnerBookingStatusResponseDTO> markNoShow(
             @Parameter(description = "Unique identifier of the booking to mark as no-show")
-            @PathVariable Long bookingId) {
+            @PathVariable UUID bookingId) {
 
         PartnerBookingStatusResponseDTO response = partnerBookingService.markNoShow(bookingId);
 

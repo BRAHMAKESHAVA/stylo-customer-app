@@ -4,12 +4,15 @@ import com.razorpay.RazorpayClient;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.backend.dto.booking.BookingResponseDTO;
 import org.backend.enums.BookingStatus;
 import org.backend.enums.PaymentStatus;
 import org.backend.model.Booking;
 import org.backend.model.Payment;
 import org.backend.repository.BookingRepository;
 import org.backend.repository.PaymentRepository;
+import org.backend.service.BookingService;
+import org.backend.service.PartnerWebSocketService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -24,6 +27,8 @@ public class PaymentReconciliationScheduler {
 
     private final PaymentRepository paymentRepo;
     private final BookingRepository bookingRepo;
+    private final PartnerWebSocketService partnerWebSocketService;
+    private final BookingService bookingService;;
 
     @Value("${razorpay.key.id}")
     private String keyId;
@@ -34,12 +39,13 @@ public class PaymentReconciliationScheduler {
     @Value("${app.booking.payment-hold-minutes}")
     private int paymentHoldMinutes;
 
-    @Scheduled(fixedRate = 3000) // every 3 seconds
+    @Scheduled(fixedRate = 5000) // every 5 seconds
     @Transactional
     public void reconcileInitiatedPayments() {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime cutoffTime = now.minusMinutes(paymentHoldMinutes); // configurable timeout
 
+        System.out.println("paymentHoldMinutes=" + paymentHoldMinutes);
         System.out.println("Running payment reconciliation at " + now + ", checking for payments before " + cutoffTime);
         List<Payment> payments = paymentRepo.findByStatusAndCreatedDateBefore(
                 PaymentStatus.INITIATED.name(),
@@ -69,6 +75,13 @@ public class PaymentReconciliationScheduler {
                             booking.setStatus(BookingStatus.PAYMENT_FAILED.name());
                             booking.setUpdatedDate(now);
                             bookingRepo.save(booking);
+
+                            // Notify customer about payment failure
+                            BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
+                            partnerWebSocketService.notifyCustomer(
+                                    booking.getCustomerId(),
+                                    bookingResponse
+                            );
                         }
 
                         log.warn("Payment had no providerOrderId, marked as FAILED. bookingId={}", payment.getBookingId());
@@ -99,8 +112,16 @@ public class PaymentReconciliationScheduler {
                                 booking.setStatus(BookingStatus.CONFIRMED.name());
                                 //booking.setUpdatedDate(now);
                                 bookingRepo.save(booking);
+
+                                // Notify customer about booking confirmation
+                                BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
+                                partnerWebSocketService.notifyCustomer(
+                                        booking.getCustomerId(),
+                                        bookingResponse
+                                );
                             }
 
+                            System.out.println("Payment reconciled successfully for bookingId=" + payment.getBookingId());
                             log.info("Payment reconciled successfully. bookingId={}", payment.getBookingId());
                             break;
                         }
@@ -117,17 +138,27 @@ public class PaymentReconciliationScheduler {
                             booking.setStatus(BookingStatus.PAYMENT_FAILED.name());
                             booking.setUpdatedDate(now);
                             bookingRepo.save(booking);
+
+                            // Notify customer about payment failure
+                            BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
+                            partnerWebSocketService.notifyCustomer(
+                                    booking.getCustomerId(),
+                                    bookingResponse
+                            );
                         }
 
+                        System.out.println("Payment expired for bookingId=" + payment.getBookingId());
                         log.info("Payment expired. bookingId={}", payment.getBookingId());
                     }
 
                 } catch (Exception ex) {
+                    System.out.println("Error reconciling paymentId=" + payment.getPaymentId() + ": " + ex.getMessage());
                     log.error("Error reconciling paymentId={}", payment.getPaymentId(), ex);
                 }
             }
 
         } catch (Exception e) {
+            System.out.println("Unable to initialize Razorpay client: " + e.getMessage());
             log.error("Unable to initialize Razorpay client", e);
         }
     }

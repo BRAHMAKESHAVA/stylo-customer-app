@@ -2,6 +2,7 @@ package org.backend.service;
 
 import lombok.RequiredArgsConstructor;
 import org.backend.dto.RefundResultDTO;
+import org.backend.dto.booking.BookingResponseDTO;
 import org.backend.dto.partner.BookingApprovalResponse;
 import org.backend.dto.partner.PartnerBookingPendingResponseDTO;
 import org.backend.dto.partner.PartnerBookingStatusResponseDTO;
@@ -26,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,6 +39,8 @@ public class PartnerBookingService {
     private final PaymentRepository paymentRepository;
     private final PaymentService paymentService;
     private final BookingApprovalRepository approvalRepository;
+    private final PartnerWebSocketService partnerWebSocketService;
+    private final BookingService bookingService;
 
     public List<BookingApprovalResponse> getBookingsForApproval() {
 
@@ -85,7 +89,7 @@ public class PartnerBookingService {
      */
     @Transactional
     public PartnerBookingStatusResponseDTO updateBookingStatus(
-            Long bookingId,
+            UUID bookingId,
             PartnerBookingStatusUpdateRequestDTO req
     ) {
 
@@ -105,6 +109,13 @@ public class PartnerBookingService {
             booking.setUpdatedDate(LocalDateTime.now());
 
             bookingRepository.save(booking);
+
+            // Notify customer about confirmation via WebSocket
+            BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
+            partnerWebSocketService.notifyCustomer(
+                    booking.getCustomerId(),
+                    bookingResponse
+            );
 
             return PartnerBookingStatusResponseDTO.builder()
                     .bookingId(booking.getBookingId())
@@ -126,6 +137,13 @@ public class PartnerBookingService {
             booking.setUpdatedDate(LocalDateTime.now());
 
             bookingRepository.save(booking);
+
+            // Notify customer about rejection via WebSocket
+            BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
+            partnerWebSocketService.notifyCustomer(
+                    booking.getCustomerId(),
+                    bookingResponse
+            );
 
             // cancel all booking services
             List<BookingServiceEntity> services = bookingServiceRepository.findByBookingId(bookingId);
@@ -179,7 +197,7 @@ public class PartnerBookingService {
      * PAY AT SALON PAYMENT COLLECTED
      */
     @Transactional
-    public PartnerBookingStatusResponseDTO markPaymentCollected(Long bookingId) {
+    public PartnerBookingStatusResponseDTO markPaymentCollected(UUID bookingId) {
 
         Booking booking = getBooking(bookingId);
         Payment payment = getPayment(bookingId);
@@ -212,7 +230,7 @@ public class PartnerBookingService {
      * START SERVICE
      */
     @Transactional
-    public PartnerBookingStatusResponseDTO startService(Long bookingId) {
+    public PartnerBookingStatusResponseDTO startService(UUID bookingId) {
 
         Booking booking = getBooking(bookingId);
         Payment payment = getPayment(bookingId);
@@ -235,6 +253,13 @@ public class PartnerBookingService {
         bookingServiceRepository.saveAll(services);
         bookingRepository.save(booking);
 
+        // Notify customer about service start via WebSocket
+        BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
+        partnerWebSocketService.notifyCustomer(
+                booking.getCustomerId(),
+                bookingResponse
+        );
+
         return PartnerBookingStatusResponseDTO.builder()
                 .bookingId(bookingId)
                 .bookingStatus(booking.getStatus())
@@ -247,7 +272,7 @@ public class PartnerBookingService {
      * COMPLETE SERVICE
      */
     @Transactional
-    public PartnerBookingStatusResponseDTO completeService(Long bookingId) {
+    public PartnerBookingStatusResponseDTO completeService(UUID bookingId) {
 
         Booking booking = getBooking(bookingId);
         Payment payment = getPayment(bookingId);
@@ -277,6 +302,13 @@ public class PartnerBookingService {
         bookingServiceRepository.saveAll(services);
         bookingRepository.save(booking);
 
+        // Notify customer about service completion via WebSocket
+        BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
+        partnerWebSocketService.notifyCustomer(
+                booking.getCustomerId(),
+                bookingResponse
+        );
+
         return PartnerBookingStatusResponseDTO.builder()
                 .bookingId(bookingId)
                 .bookingStatus(booking.getStatus())
@@ -289,7 +321,7 @@ public class PartnerBookingService {
      * NO SHOW
      */
     @Transactional
-    public PartnerBookingStatusResponseDTO markNoShow(Long bookingId) {
+    public PartnerBookingStatusResponseDTO markNoShow(UUID bookingId) {
 
         Booking booking = getBooking(bookingId);
         Payment payment = getPayment(bookingId);
@@ -298,6 +330,13 @@ public class PartnerBookingService {
         booking.setUpdatedDate(LocalDateTime.now());
 
         bookingRepository.save(booking);
+
+        // Notify customer about no show status via WebSocket
+        BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
+        partnerWebSocketService.notifyCustomer(
+                booking.getCustomerId(),
+                bookingResponse
+        );
 
         // cancel all services
         List<BookingServiceEntity> services = getBookingServices(bookingId);
@@ -359,19 +398,19 @@ public class PartnerBookingService {
     /*
      * Helper methods to fetch booking, payment and services
      */
-    private Booking getBooking(Long bookingId) {
+    private Booking getBooking(UUID bookingId) {
         return bookingRepository.findById(bookingId)
                 .orElseThrow(() ->
                         new RuntimeException("Booking not found"));
     }
 
-    private Payment getPayment(Long bookingId) {
+    private Payment getPayment(UUID bookingId) {
         return paymentRepository.findByBookingId(bookingId)
                 .orElseThrow(() ->
                         new RuntimeException("Payment not found"));
     }
 
-    private List<BookingServiceEntity> getBookingServices(Long bookingId) {
+    private List<BookingServiceEntity> getBookingServices(UUID bookingId) {
         return bookingServiceRepository.findByBookingId(bookingId);
     }
 

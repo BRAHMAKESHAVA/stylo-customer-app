@@ -55,6 +55,8 @@ public class SecurityConfig {
                         // Public APIs (no authentication required)
                         .requestMatchers(HttpMethod.POST, "/user/register/**").permitAll()
                         .requestMatchers("/auth/login/**").permitAll()
+                        // WebSocket endpoints
+                        .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 
                         // Admin-only APIs
@@ -80,7 +82,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/customer-address/**").hasAnyRole("CUSTOMER", "ADMIN", "CAPTAIN", "PARTNER")
 
                         // Default rule: everything else requires authentication
-                        .anyRequest().permitAll() // permitAll authenticated
+                        .anyRequest().authenticated() // permitAll authenticated
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(exception -> exception

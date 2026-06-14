@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * REST controller for managing salon bookings.
@@ -269,7 +270,7 @@ public class BookingController {
     })
     public ResponseEntity<ApiResponseDTO<Void>> cancelBooking(
             @Parameter(description = "Unique identifier of the booking to cancel")
-            @PathVariable Long bookingId) {
+            @PathVariable UUID bookingId) {
         bookingService.cancelBooking(bookingId);
         return ResponseEntity.ok(
                 ApiResponseDTO.<Void>builder()

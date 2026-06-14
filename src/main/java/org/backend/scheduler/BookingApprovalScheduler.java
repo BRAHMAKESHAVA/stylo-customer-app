@@ -20,7 +20,7 @@ public class BookingApprovalScheduler {
 
     private final BookingApprovalRepository bookingApprovalRepository;
 
-    @Scheduled(fixedRate = 3000) // every 3 seconds
+    @Scheduled(fixedRate = 5000) // every 5 seconds
     @Transactional
     public void autoExpirePartnerApproval() {
         log.info("Checking for expired booking approvals...");

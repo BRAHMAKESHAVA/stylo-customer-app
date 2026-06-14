@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -17,7 +18,7 @@ public class BookingApprovalUpdateRequest {
     private Long customerId;
 
     @Positive(message = "Booking ID must be greater than 0")
-    private Long bookingId;
+    private UUID bookingId;
 
     @Positive(message = "Service duration must be greater than 0")
     private Integer serviceDuration;

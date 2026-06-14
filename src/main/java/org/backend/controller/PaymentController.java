@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.backend.dto.booking.BookingResponseDTO;
 import org.backend.dto.common.ApiResponseDTO;
 import org.backend.dto.request.RazorpayVerifyPaymentRequestDTO;
 import org.backend.dto.response.RazorpayOrderResponseDTO;
@@ -15,11 +16,14 @@ import org.backend.enums.BookingStatus;
 import org.backend.exception.ResourceNotFoundException;
 import org.backend.model.Booking;
 import org.backend.repository.BookingRepository;
+import org.backend.service.BookingService;
+import org.backend.service.PartnerWebSocketService;
 import org.backend.service.PaymentService;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * REST controller for managing payments associated with salon bookings.
@@ -40,6 +44,8 @@ public class PaymentController {
 
     private final PaymentService paymentService;
     private final BookingRepository bookingRepo;
+    private final PartnerWebSocketService partnerWebSocketService;
+    private final BookingService bookingService;
 
     /**
      * Confirms a Pay-at-Salon booking.
@@ -99,7 +105,7 @@ public class PaymentController {
     })
     public ApiResponseDTO<Void> confirmPayAtSalon(
             @Parameter(description = "Unique identifier of the booking to confirm for Pay-at-Salon")
-            @PathVariable Long bookingId) {
+            @PathVariable UUID bookingId) {
 
         paymentService.confirmPayAtSalon(bookingId);
 
@@ -179,7 +185,7 @@ public class PaymentController {
     })
     public ApiResponseDTO<RazorpayOrderResponseDTO> createOrder(
             @Parameter(description = "Unique identifier of the booking for which to create a Razorpay order")
-            @PathVariable Long bookingId) {
+            @PathVariable UUID bookingId) {
 
         RazorpayOrderResponseDTO response = paymentService.createOrder(bookingId);
 
@@ -267,7 +273,7 @@ public class PaymentController {
     })
     public String verify(
             @Parameter(description = "Unique identifier of the booking to verify payment for")
-            @PathVariable Long bookingId,
+            @PathVariable UUID bookingId,
             @Parameter(description = "Razorpay verification payload containing razorpayOrderId, razorpayPaymentId, and razorpaySignature")
             @RequestBody RazorpayVerifyPaymentRequestDTO dto) throws RazorpayException {
         paymentService.verifyPayment(bookingId, dto);
@@ -344,7 +350,7 @@ public class PaymentController {
     })
     public String refund(
             @Parameter(description = "Unique identifier of the booking to refund")
-            @PathVariable Long bookingId,
+            @PathVariable UUID bookingId,
             @Parameter(description = "Reason for the refund (e.g., 'Customer requested cancellation')")
             @RequestParam String reason) {
 
@@ -356,6 +362,13 @@ public class PaymentController {
         booking.setStatus(BookingStatus.CANCELLED.name());
         booking.setUpdatedDate(LocalDateTime.now());
         bookingRepo.save(booking);
+
+        // Notify customer about refund and cancellation
+        BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
+        partnerWebSocketService.notifyCustomer(
+                booking.getCustomerId(),
+                bookingResponse
+        );
 
         return "Refund Successful";
     }
@@ -411,7 +424,7 @@ public class PaymentController {
     })
     public String markPaymentFailed(
             @Parameter(description = "Unique identifier of the booking whose payment should be marked failed")
-            @PathVariable Long bookingId) {
+            @PathVariable UUID bookingId) {
         paymentService.markPaymentFailed(bookingId);
         return "Payment marked failed";
     }
