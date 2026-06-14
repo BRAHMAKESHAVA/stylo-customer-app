@@ -7,8 +7,8 @@ server:
       min-spare: 50
 
 spring:
-  #  profiles:
-  #    active: test
+  profiles:
+  active: test
   datasource:
     #url: ${DB_URL:jdbc:postgresql://localhost:5432/my_database}
     url: ${DB_URL:jdbc:mysql://localhost:3306/my_database?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=Asia/Kolkata}
@@ -75,3 +75,6 @@ twilio:
 address:
   max:
     count: ${ADDRESS_MAX_COUNT:5}
+
+firebase:
+  credentials-path: ${FIREBASE_CREDENTIALS_PATH}

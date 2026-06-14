@@ -2,6 +2,7 @@ package org.backend.dto.booking;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -16,18 +17,22 @@ import java.util.List;
 public class BookingRequestDTO {
 
     @Schema(description = "Unique identifier of the customer", example = "1001", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotNull(message = "Customer ID cannot be null")
     private Long customerId;
 
     @Schema(description = "Unique identifier of the salon", example = "101", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotNull(message = "Salon ID cannot be null")
     private Long salonId;
 
     @Schema(description = "Unique identifier of the package", example = "501", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long packageId;
 
     @Schema(description = "List of service IDs included in the booking", example = "[201, 202, 203]")
+    @NotNull(message = "Service IDs cannot be null")
     private List<Long> serviceIds;
 
     @Schema(description = "Booking start time", example = "2026-06-04T10:00:00", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotNull(message = "Start time cannot be null")
     private LocalDateTime startTime;
 
     // if partner reject/not-respond then status explicitly set to FAILED

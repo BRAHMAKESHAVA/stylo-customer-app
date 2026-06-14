@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.backend.dto.booking.BookingRequestDTO;
 import org.backend.dto.booking.BookingResponseDTO;
@@ -98,7 +99,7 @@ public class BookingController {
     })
     public BookingResponseDTO createBooking(
             @Parameter(description = "Booking request payload containing salonId, customerId, startTime, packageId (optional), and serviceIds (optional)")
-            @RequestBody BookingRequestDTO bookingReq) {
+            @Valid @RequestBody BookingRequestDTO bookingReq) {
         return bookingService.createBooking(bookingReq);
     }
 

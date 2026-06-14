@@ -525,6 +525,9 @@ public class BookingService {
             throw new BadRequestException("Please select at least one service or package");
         }
 
+        if (req.getPackageId() != null && req.getPackageId() > 1) {
+            throw new BadRequestException("Invalid package selection");
+        }
     }
 
     /**

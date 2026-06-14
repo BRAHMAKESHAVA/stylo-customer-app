@@ -414,9 +414,9 @@ public class PaymentService {
         payment.setUpdatedDate(LocalDateTime.now());
         paymentRepo.save(payment);
 
-        //booking.setStatus(BookingStatus.PAYMENT_FAILED.name());
+        booking.setStatus(BookingStatus.PAYMENT_FAILED.name());
         //booking.setUpdatedDate(LocalDateTime.now());
-        //bookingRepo.save(booking);
+        bookingRepo.save(booking);
     }
 
     /**
