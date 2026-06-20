@@ -1,10 +1,12 @@
 package org.backend.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.backend.dto.PackageResponseDTO;
 import org.backend.dto.ServiceInfoDTO;
 import org.backend.dto.request.CreatePackageRequestDTO;
 import org.backend.dto.request.UpdatePackageRequestDTO;
+import org.backend.dto.response.PackageRecommendationDTO;
 import org.backend.exception.BadRequestException;
 import org.backend.exception.ResourceNotFoundException;
 import org.backend.model.Package;
@@ -17,17 +19,21 @@ import org.backend.repository.SalonServiceRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
+import java.math.BigDecimal;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PackageManagementService {
 
     private final PackageRepository packageRepository;
     private final PackageServiceRepository packageServiceRepository;
     private final SalonRepository salonRepository;
     private final SalonServiceRepository serviceRepository;
+
+    private BigDecimal maxPriceDifference = BigDecimal.valueOf(250.00);
 
     // CREATE PACKAGE
     @Transactional
@@ -211,6 +217,86 @@ public class PackageManagementService {
                 .packagePrice(pkg.getPackagePrice())
                 .isActive(pkg.getIsActive())
                 .services(serviceInfos)
+                .build();
+    }
+
+    // PACKAGE RECOMMENDATION
+    @Transactional(readOnly = true)
+    public PackageRecommendationDTO getRecommendedPackage(Long salonId, Long selectedPackageId) {
+        log.debug("Fetching recommendation for salonId={} and packageId={}", salonId, selectedPackageId);
+
+        Package selectedPackage = packageRepository
+                .findByPackageIdAndSalonIdAndIsActiveTrue(selectedPackageId, salonId)
+                .orElseThrow(() -> new BadRequestException("Selected package not found"));
+
+        List<Package> allPackages = packageRepository.findBySalonIdAndIsActiveTrue(salonId);
+        if (allPackages.size() <= 1) {
+            return null;
+        }
+
+        // Collect package IDs
+        List<Long> packageIds = allPackages.stream()
+                .map(Package::getPackageId)
+                .toList();
+
+        // Map package -> services
+        Map<Long, Set<Long>> packageServiceMap = packageServiceRepository.findByPackageIdIn(packageIds).stream()
+                .collect(Collectors.groupingBy(
+                        PackageService::getPackageId,
+                        Collectors.mapping(PackageService::getServiceId, Collectors.toSet())
+                ));
+
+        Set<Long> selectedServices = packageServiceMap.getOrDefault(selectedPackageId, Collections.emptySet());
+        if (selectedServices.isEmpty()) {
+            return null;
+        }
+
+        Package bestPackage = null;
+        Set<Long> bestExtraServices = Collections.emptySet();
+        BigDecimal bestPriceDifference = BigDecimal.ZERO;
+        double bestScore = 0.0;
+
+        for (Package candidate : allPackages) {
+            if (candidate.getPackageId().equals(selectedPackageId)) continue;
+
+            Set<Long> candidateServices = packageServiceMap.getOrDefault(candidate.getPackageId(), Collections.emptySet());
+            if (!candidateServices.containsAll(selectedServices)) continue;
+
+            Set<Long> extraServices = new HashSet<>(candidateServices);
+            extraServices.removeAll(selectedServices);
+            if (extraServices.isEmpty()) continue;
+
+            BigDecimal priceDifference = candidate.getPackagePrice().subtract(selectedPackage.getPackagePrice());
+            if (priceDifference.signum() <= 0 || priceDifference.compareTo(maxPriceDifference) > 0) continue;
+
+            double score = extraServices.size() / priceDifference.doubleValue();
+            if (score > bestScore) {
+                bestScore = score;
+                bestPackage = candidate;
+                bestExtraServices = extraServices;
+                bestPriceDifference = priceDifference;
+            }
+        }
+
+        if (bestPackage == null) {
+            return null;
+        }
+
+        List<SalonService> extraSalonServices = serviceRepository.findAllById(bestExtraServices);
+
+        return PackageRecommendationDTO.builder()
+                .currentPackageId(selectedPackage.getPackageId())
+                .currentPackageName(selectedPackage.getPackageName())
+                .currentPackagePrice(selectedPackage.getPackagePrice())
+                .suggestedPackageId(bestPackage.getPackageId())
+                .suggestedPackageName(bestPackage.getPackageName())
+                .suggestedPackagePrice(bestPackage.getPackagePrice())
+                .priceDifference(bestPriceDifference)
+                .additionalServiceCount(extraSalonServices.size())
+                .additionalServices(extraSalonServices.stream()
+                        .map(SalonService::getServiceName)
+                        .sorted()
+                        .toList())
                 .build();
     }
 

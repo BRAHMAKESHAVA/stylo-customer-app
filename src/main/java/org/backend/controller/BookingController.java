@@ -205,7 +205,7 @@ public class BookingController {
     })
     public ResponseEntity<ApiResponseDTO<List<SlotResponseDTO>>> getAvailableSlots(
             @Parameter(description = "Request payload containing salonId, serviceIds, and date (yyyy-MM-dd)")
-            @RequestBody AvailableSlotsRequest request) {
+            @Valid @RequestBody AvailableSlotsRequest request) {
         List<SlotResponseDTO> slots = bookingService.getAvailableSlots(
                 request.getSalonId(),
                 request.getServiceIds(),

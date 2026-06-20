@@ -28,7 +28,6 @@ public class BookingRequestDTO {
     private Long packageId;
 
     @Schema(description = "List of service IDs included in the booking", example = "[201, 202, 203]")
-    @NotNull(message = "Service IDs cannot be null")
     private List<Long> serviceIds;
 
     @Schema(description = "Booking start time", example = "2026-06-04T10:00:00", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -36,11 +35,11 @@ public class BookingRequestDTO {
     private LocalDateTime startTime;
 
     // if partner reject/not-respond then status explicitly set to FAILED
-    @Schema(description = "Booking status", example = "FAILED")
+    //@Schema(description = "Booking status", example = "FAILED")
     private String status;
 
     // If the booking is rejected, this field can provide the reason for rejection
-    @Schema(description = "Reason for booking rejection", example = "Requested slot is not available")
+    //@Schema(description = "Reason for booking rejection", example = "Requested slot is not available")
     private String rejectionReason;
 
     // If you later decide to include these fields, you can annotate them similarly:

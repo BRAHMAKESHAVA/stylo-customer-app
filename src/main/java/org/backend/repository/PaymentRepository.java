@@ -37,7 +37,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
                 WHERE p.status = 'INITIATED'
                 AND p.createdDate >= :holdThreshold
             """)
-    List<Long> findActiveHoldBookingIds(@Param("holdThreshold") LocalDateTime holdThreshold);
+    List<UUID> findActiveHoldBookingIds(@Param("holdThreshold") LocalDateTime holdThreshold);
 
 
 }

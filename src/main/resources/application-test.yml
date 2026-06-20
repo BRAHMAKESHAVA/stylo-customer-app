@@ -7,8 +7,8 @@ server:
       min-spare: 50
 
 spring:
-  profiles:
-  active: test
+  #profiles:
+  #active: test
   datasource:
     #url: ${DB_URL:jdbc:postgresql://localhost:5432/my_database}
     url: ${DB_URL:jdbc:mysql://localhost:3306/my_database?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=Asia/Kolkata}
@@ -53,7 +53,7 @@ logging:
 
 jwt:
   secret: ${JWT_SECRET:GE+7Djq+PZMw+UAz73IsRTzDu3S+kTONJAbhvWHjiOEg+T+mdMBgpqv6uXL+u73cRJ9EQX8aSw86UCl8SCr++4OFGSfMepD8+pgAKAnM9qPLijTi8KNWVdEXGixBz/u5Cmb/ahhJI1+sxKGwwpcRLgL5XPS+wkgnHxFFfjq3emR3tej+oZBhT3X6lIrtOH4VXhcD0WFOa6Nu64PmiqCXEA==}
-  access-token-expiration: ${JWT_ACCESS_EXPIRATION:86400000}
+  access-token-expiration: ${JWT_ACCESS_EXPIRATION:172800000}
   refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
 
 app:

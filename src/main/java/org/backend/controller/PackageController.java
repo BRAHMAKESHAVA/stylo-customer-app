@@ -13,8 +13,10 @@ import org.backend.dto.PackageResponseDTO;
 import org.backend.dto.common.ApiResponseDTO;
 import org.backend.dto.request.CreatePackageRequestDTO;
 import org.backend.dto.request.UpdatePackageRequestDTO;
+import org.backend.dto.response.PackageRecommendationDTO;
 import org.backend.service.PackageManagementService;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -330,5 +332,27 @@ public class PackageController {
                 .message("Package deleted successfully")
                 .data("SUCCESS")
                 .build();
+    }
+
+    // GET RECOMMENDED PACKAGE
+    @GetMapping("/recommendation")
+    public ResponseEntity<ApiResponseDTO<PackageRecommendationDTO>> getRecommendation(
+            @RequestParam Long salonId,
+            @RequestParam Long packageId
+    ) {
+        PackageRecommendationDTO recommendation =
+                packageManagementService.getRecommendedPackage(salonId, packageId);
+
+        String message = (recommendation == null)
+                ? "No package recommendation available"
+                : "Package recommendation fetched successfully";
+
+        ApiResponseDTO<PackageRecommendationDTO> response = ApiResponseDTO.<PackageRecommendationDTO>builder()
+                .status(true)
+                .message(message)
+                .data(recommendation)
+                .build();
+
+        return ResponseEntity.ok(response);
     }
 }

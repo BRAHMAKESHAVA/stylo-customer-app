@@ -5,9 +5,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.backend.dto.PackageResponseDTO;
+import org.backend.dto.ServiceInfoDTO;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -73,6 +76,10 @@ public class BookingResponseDTO {
 
     @Schema(description = "Reason for rejection if booking was cancelled", example = "Stylist unavailable")
     private String rejectionReason;
+
+    private PackageResponseDTO packageDetails;
+
+    private List<ServiceInfoDTO> addOnServices;
 
 // Constructor for your current usage
     public BookingResponseDTO(

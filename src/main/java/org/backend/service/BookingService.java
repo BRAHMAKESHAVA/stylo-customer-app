@@ -3,6 +3,8 @@ package org.backend.service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.backend.dto.PackageResponseDTO;
+import org.backend.dto.ServiceInfoDTO;
 import org.backend.dto.booking.BookingRequestDTO;
 import org.backend.dto.booking.BookingResponseDTO;
 import org.backend.dto.request.PriceSummaryRequestDTO;
@@ -22,7 +24,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -45,29 +49,6 @@ public class BookingService {
 
     @Value("${app.booking.slot-interval-minutes}")
     private int slotIntervalMinutes;
-
-    /*
-     * HELPERS
-     */
-    private static int getTotalDuration(List<Long> serviceIds, List<SalonService> services) {
-        if (services.isEmpty()) {
-            throw new BadRequestException("Services not found");
-        }
-
-        // Calculate Total Duration (respect duplicates in serviceIds)
-        Map<Long, Integer> durationMap = new HashMap<>(services.size());
-        for (SalonService s : services) {
-            durationMap.put(s.getServiceId(), s.getDurationMinutes());
-        }
-        int totalDuration = 0;
-        for (Long id : serviceIds) {
-            Integer d = durationMap.get(id);
-            if (d != null) {
-                totalDuration += d; // add duration for each occurrence of serviceId
-            }
-        }
-        return totalDuration;
-    }
 
     /**
      * CREATE BOOKING
@@ -236,6 +217,9 @@ public class BookingService {
         Booking booking = bookingRepo.findById(bookingId)
                 .orElseThrow(() -> new BadRequestException("Booking not found"));
 
+        // Validate that the logged-in customer is authorized to access this customer record
+        authService.validateCustomerAccess(booking.getCustomerId());
+
         // Validate booking status
         if (BookingStatus.CANCELLED.name().equals(booking.getStatus())) {
             throw new BadRequestException("Booking already cancelled");
@@ -318,6 +302,54 @@ public class BookingService {
                         p -> p
                 ));
 
+        List<BookingServiceEntity> allBookingServices = bsRepo.findByBookingIdIn(bookingIds);
+
+        Map<UUID, List<BookingServiceEntity>> bookingServiceMap =
+                allBookingServices.stream()
+                        .collect(Collectors.groupingBy(
+                                BookingServiceEntity::getBookingId
+                        ));
+
+
+        // Collect package IDs for batch queries
+        Set<Long> packageIds = bookings.stream()
+                .map(Booking::getPackageId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        // Map package details by packageId
+        Map<Long, Package> packageMap = packageRepository.findAllById(packageIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        Package::getPackageId,
+                        Function.identity()
+                ));
+
+        // Map package services by packageId
+        List<PackageService> allPackageServices = packageServiceRepository.findByPackageIdIn(packageIds);
+
+        // Group package services by packageId
+        Map<Long, List<PackageService>> packageServiceMap = allPackageServices.stream()
+                .collect(Collectors.groupingBy(
+                        PackageService::getPackageId
+                ));
+
+        // Collect all unique service IDs from both booking services and package services
+        Set<Long> allServiceIds = Stream.concat(
+                allBookingServices.stream().map(BookingServiceEntity::getServiceId),
+                allPackageServices.stream().map(PackageService::getServiceId)
+        ).collect(Collectors.toSet());
+
+        // Map service details by serviceId
+        Map<Long, SalonService> serviceMap = serviceRepo.findAllById(allServiceIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        SalonService::getServiceId,
+                        Function.identity()
+                ));
+
+
+
         // Build response DTOs
         for (Booking booking : bookings) {
             BookingResponseDTO dto = new BookingResponseDTO();
@@ -329,6 +361,7 @@ public class BookingService {
             dto.setFinalAmount(booking.getFinalAmount());
             dto.setStatus(booking.getStatus());
             dto.setStartTime(booking.getStartTime());
+            dto.setEndTime(booking.getEndTime());
             dto.setCreatedDate(booking.getCreatedDate());
             dto.setRejectionReason(booking.getRejectionReason());
 
@@ -346,6 +379,59 @@ public class BookingService {
                 dto.setRefundAmount(refund.get("refundAmount"));
                 dto.setRefundTier(refund.get("refundTier"));
             }
+
+            // Package
+            if (booking.getPackageId() != null) {
+                Package pkg = packageMap.get(booking.getPackageId());
+
+                if (pkg != null) {
+                    List<ServiceInfoDTO> packageServices = packageServiceMap
+                            .getOrDefault(pkg.getPackageId(), Collections.emptyList())
+                            .stream()
+                            .map(packageService -> {
+                                SalonService service = serviceMap.get(packageService.getServiceId());
+
+                                return ServiceInfoDTO.builder()
+                                        .serviceId(service.getServiceId())
+                                        .serviceName(service.getServiceName())
+                                        .price(service.getPrice())
+                                        .durationMinutes(service.getDurationMinutes())
+                                        .build();
+                            })
+                            .toList();
+
+                    dto.setPackageDetails(
+                            PackageResponseDTO.builder()
+                                    .packageId(pkg.getPackageId())
+                                    .salonId(pkg.getSalonId())
+                                    .packageName(pkg.getPackageName())
+                                    .description(pkg.getDescription())
+                                    .packagePrice(pkg.getPackagePrice())
+                                    .isActive(pkg.getIsActive())
+                                    .services(packageServices)
+                                    .build()
+                    );
+                }
+            }
+
+            // Add-On Services
+            List<ServiceInfoDTO> addOnServices = bookingServiceMap
+                    .getOrDefault(booking.getBookingId(), Collections.emptyList())
+                    .stream()
+                    .filter(bs -> BookingSourceType.ADD_ON.name().equals(bs.getSourceType()))
+                    .map(bs -> {
+                        SalonService service = serviceMap.get(bs.getServiceId());
+
+                        return ServiceInfoDTO.builder()
+                                .serviceId(bs.getServiceId())
+                                .serviceName(service != null ? service.getServiceName() : "Service")
+                                .price(bs.getServicePrice())
+                                .durationMinutes(bs.getServiceDuration())
+                                .build();
+                    })
+                    .toList();
+
+            dto.setAddOnServices(addOnServices);
 
             response.add(dto);
         }
@@ -368,6 +454,12 @@ public class BookingService {
             List<Long> serviceIds,
             LocalDate date
     ) {
+        if (date.isBefore(LocalDate.now())) {
+            throw new BadRequestException(
+                    "The selected date has already passed. Please choose today or a future date."
+            );
+        }
+
         // Load Services
         List<SalonService> services = serviceRepo.findAllById(serviceIds);
         int totalDuration = getTotalDuration(serviceIds, services);
@@ -399,7 +491,7 @@ public class BookingService {
         );
 
         // Active payment holds
-        Set<Long> activeHoldBookingIds = new HashSet<>(
+        Set<UUID> activeHoldBookingIds = new HashSet<>(
                 paymentRepo.findActiveHoldBookingIds(holdThreshold)
         );
 
@@ -524,10 +616,6 @@ public class BookingService {
                 (req.getServiceIds() == null || req.getServiceIds().isEmpty())) {
             throw new BadRequestException("Please select at least one service or package");
         }
-
-        if (req.getPackageId() != null && req.getPackageId() > 1) {
-            throw new BadRequestException("Invalid package selection");
-        }
     }
 
     /**
@@ -594,7 +682,7 @@ public class BookingService {
         );
 
 // Active HOLD bookings (Payment INITIATED within hold window)
-        Set<Long> activeHoldBookingIds = new HashSet<>(
+        Set<UUID> activeHoldBookingIds = new HashSet<>(
                 paymentRepo.findActiveHoldBookingIds(
                         LocalDateTime.now().minusMinutes(paymentHoldMinutes)
                 )
@@ -815,6 +903,35 @@ public class BookingService {
         map.put("refundTier", tier);
 
         return map;
+    }
+
+   /**
+     * Calculates the total duration in minutes for a list of service IDs.
+     * Handles both package and add-on services, accounting for duplicates in service selection.
+     *
+     * @param serviceIds list of service IDs selected by the customer
+     * @param services   list of SalonService entities corresponding to the service IDs
+     * @return total duration in minutes for the selected services
+     * @throws BadRequestException if the services list is empty or if there are invalid service IDs
+     */
+    private static int getTotalDuration(List<Long> serviceIds, List<SalonService> services) {
+        if (services.isEmpty()) {
+            throw new BadRequestException("Services not found");
+        }
+
+        // Calculate Total Duration (respect duplicates in serviceIds)
+        Map<Long, Integer> durationMap = new HashMap<>(services.size());
+        for (SalonService s : services) {
+            durationMap.put(s.getServiceId(), s.getDurationMinutes());
+        }
+        int totalDuration = 0;
+        for (Long id : serviceIds) {
+            Integer d = durationMap.get(id);
+            if (d != null) {
+                totalDuration += d; // add duration for each occurrence of serviceId
+            }
+        }
+        return totalDuration;
     }
 
     /**
