@@ -34,7 +34,6 @@ public class SalonSearchService {
 
     private final SalonRepository salonRepository;
     private final SalonServiceRepository salonServiceRepository;
-    private final CategoryRepository categoryRepository;
     private final SalonImagesRepository salonImageRepository;
 
     /**

@@ -50,35 +50,6 @@ public class BookingService {
     private int slotIntervalMinutes;
 
     /**
-     * Calculates the total duration in minutes for a list of service IDs.
-     * Handles both package and add-on services, accounting for duplicates in service selection.
-     *
-     * @param serviceIds list of service IDs selected by the customer
-     * @param services   list of SalonService entities corresponding to the service IDs
-     * @return total duration in minutes for the selected services
-     * @throws BadRequestException if the services list is empty or if there are invalid service IDs
-     */
-    private static int getTotalDuration(List<Long> serviceIds, List<SalonService> services) {
-        if (services.isEmpty()) {
-            throw new BadRequestException("Services not found");
-        }
-
-        // Calculate Total Duration (respect duplicates in serviceIds)
-        Map<Long, Integer> durationMap = new HashMap<>(services.size());
-        for (SalonService s : services) {
-            durationMap.put(s.getServiceId(), s.getDurationMinutes());
-        }
-        int totalDuration = 0;
-        for (Long id : serviceIds) {
-            Integer d = durationMap.get(id);
-            if (d != null) {
-                totalDuration += d; // add duration for each occurrence of serviceId
-            }
-        }
-        return totalDuration;
-    }
-
-    /**
      * CREATE BOOKING
      * paymentMode is no longer required here.
      * Booking is always created as PAYMENT_PENDING.
@@ -242,18 +213,17 @@ public class BookingService {
         // Validate that the logged-in customer is authorized to access this customer record
         authService.validateCustomerAccess(booking.getCustomerId());
 
-        // Validate booking status
-        if (BookingStatus.CANCELLED.name().equals(booking.getStatus())) {
-            throw new BadRequestException("Booking already cancelled");
-        }
-        if (BookingStatus.REJECTED.name().equals(booking.getStatus())) {
-            throw new BadRequestException("Rejected booking cannot be cancelled");
-        }
-        if (BookingStatus.COMPLETED.name().equals(booking.getStatus())) {
-            throw new BadRequestException("Completed booking cannot be cancelled");
-        }
-        if (BookingStatus.IN_PROGRESS.name().equals(booking.getStatus())) {
-            throw new BadRequestException("In Progress booking cannot be cancelled");
+        // Validate booking status before cancellation
+        BookingStatus status = BookingStatus.valueOf(booking.getStatus());
+
+        switch (status) {
+            case CANCELLED -> throw new BadRequestException("This booking has already been cancelled.");
+            case REJECTED  -> throw new BadRequestException("A rejected booking cannot be cancelled.");
+            case COMPLETED -> throw new BadRequestException("A completed booking cannot be cancelled.");
+            case IN_PROGRESS -> throw new BadRequestException("An in-progress booking cannot be cancelled.");
+            default -> {
+                // Allowed statuses (e.g., PENDING, CONFIRMED) fall through here
+            }
         }
 
         // Update booking status
@@ -709,7 +679,7 @@ public class BookingService {
                 )
         );
 
-// Active HOLD bookings (Payment INITIATED within hold window)
+        // Active HOLD bookings (Payment INITIATED within hold window)
         Set<UUID> activeHoldBookingIds = new HashSet<>(
                 paymentRepo.findActiveHoldBookingIds(
                         LocalDateTime.now().minusMinutes(paymentHoldMinutes)
@@ -728,10 +698,6 @@ public class BookingService {
                 )
                 .count();
 
-        //return !bookingRepo.existsOverlappingBooking(salonId, start, end, activeStatuses);
-        log.info("Resource Count: {}", resource.getResourceCount());
-        log.info("Overlapping Bookings: {}", overlappingBookings.size());
-        log.info("Occupied: {}", occupied);
         return occupied < resource.getResourceCount();
     }
 
@@ -892,6 +858,7 @@ public class BookingService {
      * @param payment the payment entity
      * @return refund amount as BigDecimal
      */
+    // for testing only
     private BigDecimal calculateRefundAmount(Payment payment) {
         // Validate payment creation timestamp
         if (payment.getCreatedDate() == null) {
@@ -927,6 +894,7 @@ public class BookingService {
      * @param payment the payment entity
      * @return map containing refundAmount and refundTier
      */
+    // for tesing only
     public Map<String, String> getRefundPreview(Payment payment) {
         // Calculate refund amount
         BigDecimal refund = calculateRefundAmount(payment);
@@ -944,6 +912,35 @@ public class BookingService {
         map.put("refundTier", tier);
 
         return map;
+    }
+
+    /**
+     * Calculates the total duration in minutes for a list of service IDs.
+     * Handles both package and add-on services, accounting for duplicates in service selection.
+     *
+     * @param serviceIds list of service IDs selected by the customer
+     * @param services   list of SalonService entities corresponding to the service IDs
+     * @return total duration in minutes for the selected services
+     * @throws BadRequestException if the services list is empty or if there are invalid service IDs
+     */
+    private static int getTotalDuration(List<Long> serviceIds, List<SalonService> services) {
+        if (services.isEmpty()) {
+            throw new BadRequestException("Services not found");
+        }
+
+        // Calculate Total Duration (respect duplicates in serviceIds)
+        Map<Long, Integer> durationMap = new HashMap<>(services.size());
+        for (SalonService s : services) {
+            durationMap.put(s.getServiceId(), s.getDurationMinutes());
+        }
+        int totalDuration = 0;
+        for (Long id : serviceIds) {
+            Integer d = durationMap.get(id);
+            if (d != null) {
+                totalDuration += d; // add duration for each occurrence of serviceId
+            }
+        }
+        return totalDuration;
     }
 
     /**
