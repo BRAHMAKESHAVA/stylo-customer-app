@@ -51,9 +51,6 @@ public class PaymentService {
     private final PaymentRefundRepository refundRepo;
     private final BookingService bookingService;
     private final SalonResourceRepository salonResourceRepo;
-    private final PartnerWebSocketService partnerWebSocketService;
-    private final NotificationService notificationService;
-
 
     @Value("${app.booking.payment-hold-minutes}")
     private int paymentHoldMinutes;
@@ -79,14 +76,14 @@ public class PaymentService {
         salonResourceRepo.lockSalonResource(booking.getSalonId());
 
         // Final availability check
-        if (!bookingService.checkSlotAvailable(
-                booking.getSalonId(),
-                booking.getStartTime(),
-                booking.getEndTime())) {
-
-            throw new BadRequestException(
-                    "This slot was booked by another customer. Please select a different slot.");
-        }
+//        if (!bookingService.checkSlotAvailable(
+//                booking.getSalonId(),
+//                booking.getStartTime(),
+//                booking.getEndTime())) {
+//
+//            throw new BadRequestException(
+//                    "This slot was booked by another customer. Please select a different slot.");
+//        }
 
         if (booking.getCreatedDate()
                 .isBefore(LocalDateTime.now().minusMinutes(paymentHoldMinutes))) {
@@ -112,14 +109,6 @@ public class PaymentService {
 
         // Notify customer about booking confirmation and next steps
         BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
-
-        partnerWebSocketService.notifyCustomer(
-                booking.getCustomerId(),
-                bookingResponse
-        );
-        // Notify customer via push notification
-        notificationService.sendBookingCreatedToCustomer(booking.getCustomerId(), bookingResponse);
-
     }
 
     //============START===============
@@ -133,14 +122,14 @@ public class PaymentService {
         salonResourceRepo.lockSalonResource(booking.getSalonId());
 
         // Final availability check
-        if (!bookingService.checkSlotAvailable(
-                booking.getSalonId(),
-                booking.getStartTime(),
-                booking.getEndTime())) {
-
-            throw new BadRequestException(
-                    "This slot was booked by another customer. Please select a different slot.");
-        }
+//        if (!bookingService.checkSlotAvailable(
+//                booking.getSalonId(),
+//                booking.getStartTime(),
+//                booking.getEndTime())) {
+//
+//            throw new BadRequestException(
+//                    "This slot was booked by another customer. Please select a different slot.");
+//        }
 
         if (!BookingStatus.PAYMENT_PENDING.name().equals(booking.getStatus())) {
             throw new BadRequestException("Booking has expired. Please select a slot again.");
@@ -179,13 +168,6 @@ public class PaymentService {
                             booking.setStatus(BookingStatus.CONFIRMED.name());
                             //booking.setUpdatedDate(now);
                             bookingRepo.save(booking);
-
-                            // Notify customer about booking confirmation and next steps
-                            BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
-                            partnerWebSocketService.notifyCustomer(
-                                    booking.getCustomerId(),
-                                    bookingResponse
-                            );
                         }
 
                         throw new BadRequestException("Payment already completed for booking: " + bookingId);
@@ -222,13 +204,6 @@ public class PaymentService {
                             booking.setStatus(BookingStatus.CONFIRMED.name());
                             //booking.setUpdatedDate(now);
                             bookingRepo.save(booking);
-
-                            // Notify customer about booking confirmation and next steps
-                            BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
-                            partnerWebSocketService.notifyCustomer(
-                                    booking.getCustomerId(),
-                                    bookingResponse
-                            );
                         }
 
                         throw new BadRequestException("Payment already completed for booking: " + bookingId);
@@ -336,13 +311,6 @@ public class PaymentService {
             booking.setUpdatedDate(LocalDateTime.now());
             bookingRepo.save(booking);
 
-            // Notify customer about payment failure and next steps
-            BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
-            partnerWebSocketService.notifyCustomer(
-                    booking.getCustomerId(),
-                    bookingResponse
-            );
-
             throw new BadRequestException("Payment not captured");
         }
 
@@ -375,13 +343,6 @@ public class PaymentService {
         booking.setStatus(BookingStatus.CONFIRMED.name());
         //booking.setUpdatedDate(LocalDateTime.now());
         bookingRepo.save(booking);
-
-        // Notify customer about booking confirmation and next steps
-        BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
-        partnerWebSocketService.notifyCustomer(
-                booking.getCustomerId(),
-                bookingResponse
-        );
 
         log.info("Payment verified successfully | bookingId={}, paymentId={}", bookingId, dto.getRazorpayPaymentId());
     }
@@ -561,7 +522,7 @@ public class PaymentService {
                 payment.setUpdatedDate(LocalDateTime.now());
                 paymentRepo.save(payment);
 
-                booking.setStatus(BookingStatus.PENDING_PARTNER_CONFIRMATION.name());
+                booking.setStatus(BookingStatus.CONFIRMED.name());
                 booking.setUpdatedDate(LocalDateTime.now());
                 bookingRepo.save(booking);
 

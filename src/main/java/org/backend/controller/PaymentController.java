@@ -17,12 +17,10 @@ import org.backend.exception.ResourceNotFoundException;
 import org.backend.model.Booking;
 import org.backend.repository.BookingRepository;
 import org.backend.service.BookingService;
-import org.backend.service.PartnerWebSocketService;
 import org.backend.service.PaymentService;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -44,7 +42,6 @@ public class PaymentController {
 
     private final PaymentService paymentService;
     private final BookingRepository bookingRepo;
-    private final PartnerWebSocketService partnerWebSocketService;
     private final BookingService bookingService;
 
     /**
@@ -362,13 +359,6 @@ public class PaymentController {
         booking.setStatus(BookingStatus.CANCELLED.name());
         booking.setUpdatedDate(LocalDateTime.now());
         bookingRepo.save(booking);
-
-        // Notify customer about refund and cancellation
-        BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
-        partnerWebSocketService.notifyCustomer(
-                booking.getCustomerId(),
-                bookingResponse
-        );
 
         return "Refund Successful";
     }

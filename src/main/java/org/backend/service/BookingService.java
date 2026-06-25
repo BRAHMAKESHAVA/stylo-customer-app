@@ -42,13 +42,41 @@ public class BookingService {
     private final PackageRepository packageRepository;
     private final SalonResourceRepository salonResourceRepo;
     private final AuthService authService;
-    private final PartnerWebSocketService partnerWebSocketService;
 
     @Value("${app.booking.payment-hold-minutes}")
     private int paymentHoldMinutes;
 
     @Value("${app.booking.slot-interval-minutes}")
     private int slotIntervalMinutes;
+
+    /**
+     * Calculates the total duration in minutes for a list of service IDs.
+     * Handles both package and add-on services, accounting for duplicates in service selection.
+     *
+     * @param serviceIds list of service IDs selected by the customer
+     * @param services   list of SalonService entities corresponding to the service IDs
+     * @return total duration in minutes for the selected services
+     * @throws BadRequestException if the services list is empty or if there are invalid service IDs
+     */
+    private static int getTotalDuration(List<Long> serviceIds, List<SalonService> services) {
+        if (services.isEmpty()) {
+            throw new BadRequestException("Services not found");
+        }
+
+        // Calculate Total Duration (respect duplicates in serviceIds)
+        Map<Long, Integer> durationMap = new HashMap<>(services.size());
+        for (SalonService s : services) {
+            durationMap.put(s.getServiceId(), s.getDurationMinutes());
+        }
+        int totalDuration = 0;
+        for (Long id : serviceIds) {
+            Integer d = durationMap.get(id);
+            if (d != null) {
+                totalDuration += d; // add duration for each occurrence of serviceId
+            }
+        }
+        return totalDuration;
+    }
 
     /**
      * CREATE BOOKING
@@ -193,12 +221,6 @@ public class BookingService {
         //return buildResponse(savedBooking);
         BookingResponseDTO bookingResponse = buildResponse(savedBooking);
 
-        // Notify customer of new booking creation
-        partnerWebSocketService.notifyCustomer(
-                booking.getCustomerId(),
-                bookingResponse
-        );
-
         return bookingResponse;
 
     }
@@ -238,13 +260,6 @@ public class BookingService {
         booking.setStatus(BookingStatus.CANCELLED.name());
         booking.setUpdatedDate(LocalDateTime.now());
         bookingRepo.save(booking);
-
-        // Notify customer of new booking creation
-        BookingResponseDTO bookingResponse = buildResponse(booking);
-        partnerWebSocketService.notifyCustomer(
-                booking.getCustomerId(),
-                bookingResponse
-        );
 
         // Cancel associated services
         List<BookingServiceEntity> services = bsRepo.findByBookingId(bookingId);
@@ -349,7 +364,6 @@ public class BookingService {
                 ));
 
 
-
         // Build response DTOs
         for (Booking booking : bookings) {
             BookingResponseDTO dto = new BookingResponseDTO();
@@ -359,6 +373,8 @@ public class BookingService {
             dto.setPlatformFee(booking.getPlatformFee());
             dto.setDiscountAmount(booking.getDiscountAmount());
             dto.setFinalAmount(booking.getFinalAmount());
+            dto.setCommissionAmount(calculatePricing(booking.getGrossAmount()).commissionAmount());
+            dto.setTaxAmount(booking.getTaxAmount());
             dto.setStatus(booking.getStatus());
             dto.setStartTime(booking.getStartTime());
             dto.setEndTime(booking.getEndTime());
@@ -670,8 +686,10 @@ public class BookingService {
         );
 
         // Load salon resource configuration
-        SalonResource resource = salonResourceRepo.findBySalonId(salonId)
-                .orElseThrow(() -> new BadRequestException("Salon resource config not found"));
+        SalonResource resource = salonResourceRepo
+                .lockSalonResource(salonId)
+                .orElseThrow(() ->
+                        new BadRequestException("Salon resource config not found"));
 
         // Get overlapping bookings
         List<Booking> overlappingBookings = bookingRepo.findOverlappingBookings(
@@ -679,6 +697,16 @@ public class BookingService {
                 start,
                 end,
                 activeStatuses
+        );
+        overlappingBookings.forEach(b ->
+                log.info(
+                        "Overlap Booking -> id={}, status={}, createdDate={}, start={}, end={}",
+                        b.getBookingId(),
+                        b.getStatus(),
+                        b.getCreatedDate(),
+                        b.getStartTime(),
+                        b.getEndTime()
+                )
         );
 
 // Active HOLD bookings (Payment INITIATED within hold window)
@@ -692,13 +720,18 @@ public class BookingService {
                 .filter(booking ->
                         activeStatuses.contains(booking.getStatus())
                                 || (
+                                //BookingStatus.PAYMENT_PENDING.name().equals(booking.getStatus()) && activeHoldBookingIds.contains(booking.getBookingId())
                                 BookingStatus.PAYMENT_PENDING.name().equals(booking.getStatus())
-                                        && activeHoldBookingIds.contains(booking.getBookingId())
+                                        && booking.getCreatedDate()
+                                        .isAfter(LocalDateTime.now().minusMinutes(paymentHoldMinutes))
                         )
                 )
                 .count();
 
         //return !bookingRepo.existsOverlappingBooking(salonId, start, end, activeStatuses);
+        log.info("Resource Count: {}", resource.getResourceCount());
+        log.info("Overlapping Bookings: {}", overlappingBookings.size());
+        log.info("Occupied: {}", occupied);
         return occupied < resource.getResourceCount();
     }
 
@@ -714,28 +747,32 @@ public class BookingService {
 
         if (grossAmount == null || grossAmount.compareTo(BigDecimal.ZERO) <= 0) {
             return new PricingResult(
-                    BigDecimal.ZERO,
-                    BigDecimal.ZERO,
-                    BigDecimal.ZERO,
-                    BigDecimal.ZERO,
-                    BigDecimal.ZERO,
-                    BigDecimal.ZERO,
-                    BigDecimal.ZERO
+                    BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP),
+                    BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP),
+                    BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP),
+                    BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP),
+                    BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP),
+                    BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP),
+                    BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP)
             );
         }
 
-        // Fixed platform fee charged to customer
-        BigDecimal platformFee = BigDecimal.valueOf(15);
+        grossAmount = grossAmount.setScale(2, RoundingMode.HALF_UP);
 
+        // Fixed platform fee charged to customer
+        BigDecimal platformFee = BigDecimal.valueOf(15.00)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        // Platform commission percentage
         BigDecimal commissionPercentage = BigDecimal.ZERO;
 
-        // 0% commission retained by platform
         BigDecimal commissionAmount = grossAmount
                 .multiply(commissionPercentage)
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
 
         // Future coupon discounts
-        BigDecimal discountAmount = BigDecimal.ZERO;
+        BigDecimal discountAmount = BigDecimal.ZERO
+                .setScale(2, RoundingMode.HALF_UP);
 
         // GST on platform fee (18%)
         BigDecimal taxAmount = platformFee
@@ -745,10 +782,12 @@ public class BookingService {
         BigDecimal finalAmount = grossAmount
                 .add(platformFee)
                 .add(taxAmount)
-                .subtract(discountAmount);
+                .subtract(discountAmount)
+                .setScale(2, RoundingMode.HALF_UP);
 
         BigDecimal partnerAmount = grossAmount
-                .subtract(commissionAmount);
+                .subtract(commissionAmount)
+                .setScale(2, RoundingMode.HALF_UP);
 
         return new PricingResult(
                 grossAmount,
@@ -801,6 +840,9 @@ public class BookingService {
                 grossAmount = grossAmount.add(service.getPrice());
             }
         }
+
+        // Ensure professional currency formatting
+        grossAmount = grossAmount.setScale(2, RoundingMode.HALF_UP);
         PricingResult pricing = calculatePricing(grossAmount);
 
         return new BookingResponseDTO(
@@ -812,7 +854,6 @@ public class BookingService {
                 pricing.finalAmount()
         );
     }
-
 
     /**
      * Builds a BookingResponseDTO from a Booking entity.
@@ -903,35 +944,6 @@ public class BookingService {
         map.put("refundTier", tier);
 
         return map;
-    }
-
-   /**
-     * Calculates the total duration in minutes for a list of service IDs.
-     * Handles both package and add-on services, accounting for duplicates in service selection.
-     *
-     * @param serviceIds list of service IDs selected by the customer
-     * @param services   list of SalonService entities corresponding to the service IDs
-     * @return total duration in minutes for the selected services
-     * @throws BadRequestException if the services list is empty or if there are invalid service IDs
-     */
-    private static int getTotalDuration(List<Long> serviceIds, List<SalonService> services) {
-        if (services.isEmpty()) {
-            throw new BadRequestException("Services not found");
-        }
-
-        // Calculate Total Duration (respect duplicates in serviceIds)
-        Map<Long, Integer> durationMap = new HashMap<>(services.size());
-        for (SalonService s : services) {
-            durationMap.put(s.getServiceId(), s.getDurationMinutes());
-        }
-        int totalDuration = 0;
-        for (Long id : serviceIds) {
-            Integer d = durationMap.get(id);
-            if (d != null) {
-                totalDuration += d; // add duration for each occurrence of serviceId
-            }
-        }
-        return totalDuration;
     }
 
     /**

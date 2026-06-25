@@ -39,7 +39,6 @@ public class PartnerBookingService {
     private final PaymentRepository paymentRepository;
     private final PaymentService paymentService;
     private final BookingApprovalRepository approvalRepository;
-    private final PartnerWebSocketService partnerWebSocketService;
     private final BookingService bookingService;
 
     public List<BookingApprovalResponse> getBookingsForApproval() {
@@ -110,13 +109,6 @@ public class PartnerBookingService {
 
             bookingRepository.save(booking);
 
-            // Notify customer about confirmation via WebSocket
-            BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
-            partnerWebSocketService.notifyCustomer(
-                    booking.getCustomerId(),
-                    bookingResponse
-            );
-
             return PartnerBookingStatusResponseDTO.builder()
                     .bookingId(booking.getBookingId())
                     .bookingStatus(booking.getStatus())
@@ -137,13 +129,6 @@ public class PartnerBookingService {
             booking.setUpdatedDate(LocalDateTime.now());
 
             bookingRepository.save(booking);
-
-            // Notify customer about rejection via WebSocket
-            BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
-            partnerWebSocketService.notifyCustomer(
-                    booking.getCustomerId(),
-                    bookingResponse
-            );
 
             // cancel all booking services
             List<BookingServiceEntity> services = bookingServiceRepository.findByBookingId(bookingId);
@@ -253,13 +238,6 @@ public class PartnerBookingService {
         bookingServiceRepository.saveAll(services);
         bookingRepository.save(booking);
 
-        // Notify customer about service start via WebSocket
-        BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
-        partnerWebSocketService.notifyCustomer(
-                booking.getCustomerId(),
-                bookingResponse
-        );
-
         return PartnerBookingStatusResponseDTO.builder()
                 .bookingId(bookingId)
                 .bookingStatus(booking.getStatus())
@@ -302,13 +280,6 @@ public class PartnerBookingService {
         bookingServiceRepository.saveAll(services);
         bookingRepository.save(booking);
 
-        // Notify customer about service completion via WebSocket
-        BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
-        partnerWebSocketService.notifyCustomer(
-                booking.getCustomerId(),
-                bookingResponse
-        );
-
         return PartnerBookingStatusResponseDTO.builder()
                 .bookingId(bookingId)
                 .bookingStatus(booking.getStatus())
@@ -330,13 +301,6 @@ public class PartnerBookingService {
         booking.setUpdatedDate(LocalDateTime.now());
 
         bookingRepository.save(booking);
-
-        // Notify customer about no show status via WebSocket
-        BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
-        partnerWebSocketService.notifyCustomer(
-                booking.getCustomerId(),
-                bookingResponse
-        );
 
         // cancel all services
         List<BookingServiceEntity> services = getBookingServices(bookingId);

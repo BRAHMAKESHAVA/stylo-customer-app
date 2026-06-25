@@ -2,9 +2,7 @@ package org.backend.dto.booking;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.backend.dto.PackageResponseDTO;
 import org.backend.dto.ServiceInfoDTO;
 
@@ -14,6 +12,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Data
+@Getter @Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)

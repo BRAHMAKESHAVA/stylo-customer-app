@@ -82,7 +82,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/customer-address/**").hasAnyRole("CUSTOMER", "ADMIN", "CAPTAIN", "PARTNER")
 
                         // Default rule: everything else requires authentication
-                        .anyRequest().permitAll() // permitAll authenticated
+                        .anyRequest().authenticated() // permitAll authenticated
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .exceptionHandling(exception -> exception

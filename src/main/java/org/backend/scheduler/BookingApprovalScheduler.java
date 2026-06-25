@@ -23,7 +23,6 @@ public class BookingApprovalScheduler {
     @Scheduled(fixedRate = 5000) // every 5 seconds
     @Transactional
     public void autoExpirePartnerApproval() {
-        log.info("Checking for expired booking approvals...");
         System.out.println("Checking for expired booking approvals...");
 
         LocalDateTime cutoff = LocalDateTime.now().minusMinutes(1); // configurable timeout
@@ -34,7 +33,6 @@ public class BookingApprovalScheduler {
                         BookingStatus.PENDING_PARTNER_CONFIRMATION.name(), cutoff);
 
         if (expiredApprovals.isEmpty()) {
-            log.info("No expired approvals found.");
             System.out.println("No expired approvals found.");
             return;
         }
@@ -45,8 +43,6 @@ public class BookingApprovalScheduler {
         });
 
         bookingApprovalRepository.saveAll(expiredApprovals);
-
-        log.info("Marked {} approvals as APPROVAL_NO_SHOW", expiredApprovals.size());
         System.out.println("Marked " + expiredApprovals.size() + " approvals as APPROVAL_NO_SHOW");
     }
 }

@@ -12,7 +12,6 @@ import org.backend.model.Payment;
 import org.backend.repository.BookingRepository;
 import org.backend.repository.PaymentRepository;
 import org.backend.service.BookingService;
-import org.backend.service.PartnerWebSocketService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -27,7 +26,6 @@ public class PaymentReconciliationScheduler {
 
     private final PaymentRepository paymentRepo;
     private final BookingRepository bookingRepo;
-    private final PartnerWebSocketService partnerWebSocketService;
     private final BookingService bookingService;;
 
     @Value("${razorpay.key.id}")
@@ -75,16 +73,8 @@ public class PaymentReconciliationScheduler {
                             booking.setStatus(BookingStatus.PAYMENT_FAILED.name());
                             booking.setUpdatedDate(now);
                             bookingRepo.save(booking);
-
-                            // Notify customer about payment failure
-                            BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
-                            partnerWebSocketService.notifyCustomer(
-                                    booking.getCustomerId(),
-                                    bookingResponse
-                            );
                         }
-
-                        log.warn("Payment had no providerOrderId, marked as FAILED. bookingId={}", payment.getBookingId());
+                        System.out.println("Payment had no providerOrderId, marked as FAILED. bookingId=" + payment.getBookingId());
                         continue;
                     }
 
@@ -112,17 +102,9 @@ public class PaymentReconciliationScheduler {
                                 booking.setStatus(BookingStatus.CONFIRMED.name());
                                 //booking.setUpdatedDate(now);
                                 bookingRepo.save(booking);
-
-                                // Notify customer about booking confirmation
-                                BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
-                                partnerWebSocketService.notifyCustomer(
-                                        booking.getCustomerId(),
-                                        bookingResponse
-                                );
                             }
 
                             System.out.println("Payment reconciled successfully for bookingId=" + payment.getBookingId());
-                            log.info("Payment reconciled successfully. bookingId={}", payment.getBookingId());
                             break;
                         }
                     }
@@ -138,28 +120,17 @@ public class PaymentReconciliationScheduler {
                             booking.setStatus(BookingStatus.PAYMENT_FAILED.name());
                             booking.setUpdatedDate(now);
                             bookingRepo.save(booking);
-
-                            // Notify customer about payment failure
-                            BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
-                            partnerWebSocketService.notifyCustomer(
-                                    booking.getCustomerId(),
-                                    bookingResponse
-                            );
                         }
 
-                        System.out.println("Payment expired for bookingId=" + payment.getBookingId());
-                        log.info("Payment expired. bookingId={}", payment.getBookingId());
-                    }
+                        System.out.println("Payment expired for bookingId=" + payment.getBookingId());}
 
                 } catch (Exception ex) {
                     System.out.println("Error reconciling paymentId=" + payment.getPaymentId() + ": " + ex.getMessage());
-                    log.error("Error reconciling paymentId={}", payment.getPaymentId(), ex);
                 }
             }
 
         } catch (Exception e) {
             System.out.println("Unable to initialize Razorpay client: " + e.getMessage());
-            log.error("Unable to initialize Razorpay client", e);
         }
     }
 }
