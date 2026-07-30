@@ -51,6 +51,11 @@ public class PaymentService {
     private final PaymentRefundRepository refundRepo;
     private final BookingService bookingService;
     private final SalonResourceRepository salonResourceRepo;
+<<<<<<< HEAD
+=======
+    private final PartnerWebSocketService partnerWebSocketService;
+    private final NotificationService notificationService;
+>>>>>>> 345de0e (implimented scalable notification system)
 
     @Value("${app.booking.payment-hold-minutes}")
     private int paymentHoldMinutes;
@@ -109,6 +114,21 @@ public class PaymentService {
 
         // Notify customer about booking confirmation and next steps
         BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
+<<<<<<< HEAD
+=======
+
+        /**
+         * Publish Booking Confirmed Notification
+         */
+        notificationService.sendBookingCreated(
+                booking.getCustomerId(),
+                booking.getBookingId(),
+                booking.getStatus(),
+                booking.getFinalAmount().toString()
+        );
+
+        partnerWebSocketService.notifyCustomer(booking.getCustomerId(), bookingResponse);
+>>>>>>> 345de0e (implimented scalable notification system)
     }
 
     //============START===============
@@ -344,6 +364,20 @@ public class PaymentService {
         //booking.setUpdatedDate(LocalDateTime.now());
         bookingRepo.save(booking);
 
+<<<<<<< HEAD
+=======
+        BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
+
+        // Push notification
+        notificationService.sendBookingConfirmedAfterPayment(booking, payment);
+
+        // Notify customer about booking confirmation and next steps
+        partnerWebSocketService.notifyCustomer(
+                booking.getCustomerId(),
+                bookingResponse
+        );
+
+>>>>>>> 345de0e (implimented scalable notification system)
         log.info("Payment verified successfully | bookingId={}, paymentId={}", bookingId, dto.getRazorpayPaymentId());
     }
 

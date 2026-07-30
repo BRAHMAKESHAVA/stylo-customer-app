@@ -48,28 +48,6 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
             @Param("statuses") List<String> statuses
     );
 
-//    @Query("""
-//             SELECT b
-//             FROM Booking b
-//             WHERE b.salonId = :salonId
-//             AND b.startTime >= :startOfDay
-//             AND b.startTime < :endOfDay
-//             AND (
-//                 b.status IN :statuses
-//                 OR (
-//                     b.status = 'PAYMENT_PENDING'
-//                     AND b.createdDate >= :pendingCutoff
-//                 )
-//             )
-//            """)
-//    List<Booking> findBookingsForDate(
-//            @Param("salonId") Long salonId,
-//            @Param("startOfDay") LocalDateTime startOfDay,
-//            @Param("endOfDay") LocalDateTime endOfDay,
-//            @Param("statuses") List<String> statuses,
-//            @Param("pendingCutoff") LocalDateTime pendingCutoff
-//    );
-
     @Query("""
                 SELECT b
                 FROM Booking b
@@ -135,4 +113,36 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
             @Param("end") LocalDateTime end,
             @Param("statuses") List<String> statuses
     );
+
+    // COUPON ELIGIBILITY (Section A)
+
+    // Total completed bookings for a customer — used for minimumBookingCount / maximumBookingCount
+    // and for the FIRST_BOOKING / RETURNING_CUSTOMERS targetType checks.
+    long countByCustomerIdAndStatus(Long customerId, String status);
+
+    // Has this customer completed at least one booking with the given partner? Booking only stores
+    // salonId, so this joins through SalonDetails to reach the owning partner — used for
+    // targetType = PARTNER_CUSTOMERS / existingPartnerCustomerOnly.
+    @Query("""
+                SELECT COUNT(b) > 0
+                FROM Booking b
+                JOIN SalonDetails s ON s.salonId = b.salonId
+                WHERE b.customerId = :customerId
+                AND s.partner.partnerId = :partnerId
+                AND b.status = 'COMPLETED'
+            """)
+    boolean existsCompletedBookingByCustomerIdAndPartnerId(
+            @Param("customerId") Long customerId,
+            @Param("partnerId") Long partnerId
+    );
+
+    // Most recent completed-booking date for a customer — used to identify "returning" /
+    // lapsed customers (i.e. had bookings before, but nothing recent) for targetType = RETURNING_CUSTOMERS.
+    @Query("""
+                SELECT MAX(b.createdDate)
+                FROM Booking b
+                WHERE b.customerId = :customerId
+                AND b.status = 'COMPLETED'
+            """)
+    Optional<LocalDateTime> findLastCompletedBookingDate(@Param("customerId") Long customerId);
 }

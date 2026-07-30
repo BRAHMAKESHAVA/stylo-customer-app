@@ -18,6 +18,7 @@ import org.backend.model.Booking;
 import org.backend.repository.BookingRepository;
 import org.backend.service.BookingService;
 import org.backend.service.PaymentService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -268,13 +269,19 @@ public class PaymentController {
                     content = @Content
             )
     })
-    public String verify(
+    public ResponseEntity<ApiResponseDTO<Void>> verify(
             @Parameter(description = "Unique identifier of the booking to verify payment for")
             @PathVariable UUID bookingId,
             @Parameter(description = "Razorpay verification payload containing razorpayOrderId, razorpayPaymentId, and razorpaySignature")
             @RequestBody RazorpayVerifyPaymentRequestDTO dto) throws RazorpayException {
         paymentService.verifyPayment(bookingId, dto);
-        return "Payment verified & Booking confirmed";
+
+        return ResponseEntity.ok(
+                ApiResponseDTO.<Void>builder()
+                        .status(true)
+                        .message("Payment verified & booking confirmed successfully.")
+                        .build()
+        );
     }
 
     /**

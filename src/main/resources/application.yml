@@ -10,27 +10,6 @@ spring:
   profiles:
     active: test
 
-  datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/my_database}
-    username: ${DB_USERNAME:testing}
-    password: ${DB_PASSWORD:1234567890}
-    hikari:
-      maximum-pool-size: 50
-      minimum-idle: 10
-      connection-timeout: 30000
-      idle-timeout: 600000
-      max-lifetime: 1800000
-
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: false
-    properties:
-      hibernate:
-        format_sql: false
-        jdbc:
-          time_zone: Asia/Kolkata
-
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -63,6 +42,34 @@ app:
     payment-hold-minutes: ${PAYMENT_HOLD_MINUTES:10}
     slot-interval-minutes: ${SLOT_INTERVAL_MINUTES:30}
 
+  # Two live DB connections at once:
+  # - prod: Users, SalonDetails, SalonImages, PartnerDetails only (the entities that exist in prod)
+  # - local: everything else (Booking, Address, Coupon, Package, Payment, Category, etc.)
+  # No data is copied either direction; each repository is wired to whichever DB actually has that table.
+  datasource:
+    prod:
+      url: jdbc:postgresql://localhost:5433/primary
+      username: developer_keshava
+      password: ikhgtdrg3funsku!ljdrfgsvgd!
+      driver-class-name: org.postgresql.Driver
+      hikari:
+        maximum-pool-size: ${PROD_DB_POOL_MAX:20}
+        minimum-idle: ${PROD_DB_POOL_MIN:5}
+        connection-timeout: 30000
+        idle-timeout: 600000
+        max-lifetime: 1800000
+    local:
+      url: jdbc:postgresql://localhost:5432/my_database
+      username: testing
+      password: 1234567890
+      driver-class-name: org.postgresql.Driver
+      hikari:
+        maximum-pool-size: ${LOCAL_DB_POOL_MAX:50}
+        minimum-idle: ${LOCAL_DB_POOL_MIN:10}
+        connection-timeout: 30000
+        idle-timeout: 600000
+        max-lifetime: 1800000
+
 twilio:
   account:
     sid: ${TWILIO_SID}
@@ -81,3 +88,89 @@ otp:
 address:
   max:
     count: ${ADDRESS_MAX_COUNT:5}
+
+#=========================================
+#
+#server:
+#  port: ${SERVER_PORT:8080}
+#  address: 0.0.0.0
+#  tomcat:
+#    threads:
+#      max: 250
+#      min-spare: 50
+#
+#spring:
+##  profiles:
+##    active: test
+#
+#  datasource:
+#    url: ${DB_URL:jdbc:postgresql://localhost:5432/my_database}
+#    username: ${DB_USERNAME:testing}
+#    password: ${DB_PASSWORD:1234567890}
+#    hikari:
+#      maximum-pool-size: 50
+#      minimum-idle: 10
+#      connection-timeout: 30000
+#      idle-timeout: 600000
+#      max-lifetime: 1800000
+#
+#  jpa:
+#    hibernate:
+#      ddl-auto: update
+#    show-sql: false
+#    properties:
+#      hibernate:
+#        format_sql: false
+#        jdbc:
+#          time_zone: Asia/Kolkata
+#
+#  data:
+#    redis:
+#      host: ${REDIS_HOST:localhost}
+#      port: ${REDIS_PORT:6379}
+#
+#  mvc:
+#    throw-exception-if-no-handler-found: true
+#
+#  web:
+#    resources:
+#      add-mappings: false
+#
+#logging:
+#  level:
+#    root: INFO
+#    org.backend: DEBUG
+#    org.springframework.security: DEBUG
+#  pattern:
+#    console: "%green(%d{HH:mm:ss.SSS}) %highlight(%-5level) %cyan([%thread]) %magenta(%logger{15}) - %msg%n"
+#
+#jwt:
+#  secret: ${JWT_SECRET:GE+7Djq+PZMw+UAz73IsRTzDu3S+kTONJAbhvWHjiOEg+T+mdMBgpqv6uXL+u73cRJ9EQX8aSw86UCl8SCr++4OFGSfMepD8+pgAKAnM9qPLijTi8KNWVdEXGixBz/u5Cmb/ahhJI1+sxKGwwpcRLgL5XPS+wkgnHxFFfjq3emR3tej+oZBhT3X6lIrtOH4VXhcD0WFOa6Nu64PmiqCXEA==}
+#  access-token-expiration: ${JWT_ACCESS_EXPIRATION:172800000}
+#  refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+#
+#app:
+#  cors:
+#    allowed-origins: http://localhost:5173,http://192.168.1.50:5173,https://cavally-prebuccal-sherell.ngrok-free.dev
+#  booking:
+#    payment-hold-minutes: ${PAYMENT_HOLD_MINUTES:10}
+#    slot-interval-minutes: ${SLOT_INTERVAL_MINUTES:30}
+#
+#twilio:
+#  account:
+#    sid: ${TWILIO_SID}
+#  auth:
+#    token: ${TWILIO_AUTH_TOKEN}
+#  sms:
+#    from: ${TWILIO_SMS_FROM}
+#  whatsapp:
+#    sandbox: ${TWILIO_WHATSAPP_SANDBOX}
+#
+#otp:
+#  expiry-minutes: ${OTP_EXPIRY_MINUTES:2}
+#  max-attempts: ${OTP_MAX_ATTEMPTS:3}
+#  lock-duration-minutes: ${OTP_LOCK_DURATION_MINUTES:10}
+#
+#address:
+#  max:
+#    count: ${ADDRESS_MAX_COUNT:5}

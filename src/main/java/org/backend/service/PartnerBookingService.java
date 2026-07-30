@@ -40,6 +40,8 @@ public class PartnerBookingService {
     private final PaymentService paymentService;
     private final BookingApprovalRepository approvalRepository;
     private final BookingService bookingService;
+    private final NotificationService notificationService;
+
 
     public List<BookingApprovalResponse> getBookingsForApproval() {
 
@@ -280,6 +282,26 @@ public class PartnerBookingService {
         bookingServiceRepository.saveAll(services);
         bookingRepository.save(booking);
 
+<<<<<<< HEAD
+=======
+        /**
+         * Publish Booking Confirmed Notification
+         */
+        notificationService.sendBookingCreated(
+                booking.getCustomerId(),
+                booking.getBookingId(),
+                booking.getStatus(),
+                booking.getFinalAmount().toString()
+        );
+
+        // Notify customer about service completion via WebSocket
+        BookingResponseDTO bookingResponse = bookingService.buildResponse(booking);
+        partnerWebSocketService.notifyCustomer(
+                booking.getCustomerId(),
+                bookingResponse
+        );
+
+>>>>>>> 345de0e (implimented scalable notification system)
         return PartnerBookingStatusResponseDTO.builder()
                 .bookingId(bookingId)
                 .bookingStatus(booking.getStatus())

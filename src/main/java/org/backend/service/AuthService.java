@@ -1,7 +1,9 @@
 package org.backend.service;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.backend.dto.LogoutRequest;
 import org.backend.dto.response.AuthResponse;
 import org.backend.dto.response.RefreshTokenResponse;
 import org.backend.enums.Role;
@@ -26,6 +28,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class AuthService {
 
     private final JwtUtill jwtUtill;
@@ -33,6 +36,7 @@ public class AuthService {
     private final CustomerRepository customerRepository;
     private final PartnerRepository partnerRepository;
     private final SalonRepository salonRepository;
+    private final NotificationDeviceService notificationDeviceService;
 
     /**
      * Extracts the source (origin) of the request from the HttpServletRequest.

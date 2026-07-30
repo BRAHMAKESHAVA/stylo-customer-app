@@ -196,7 +196,7 @@ public class SwaggerConfig {
                                 "3. Use returned accessToken in Authorization header"));
 
         // Add custom schema components for better documentation
-        addCommonSchemaComponents(components);
+        //addCommonSchemaComponents(components);
 
         return components;
     }

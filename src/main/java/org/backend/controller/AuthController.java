@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.backend.dto.LogoutRequest;
 import org.backend.dto.common.ApiResponseDTO;
 import org.backend.dto.request.GenerateTokenRequest;
 import org.backend.dto.request.SendOtpRequest;
@@ -279,5 +280,4 @@ public class AuthController {
                         .build()
         );
     }
-
 }

@@ -13,6 +13,10 @@ import org.springframework.stereotype.Service;
 public class BookingApprovalService {
 
     private final BookingApprovalRepository approvalRepository;
+<<<<<<< HEAD
+=======
+    private final PartnerWebSocketService partnerWebSocketService;
+>>>>>>> 345de0e (implimented scalable notification system)
 
     public BookingApprovalResponse createApproval(Long salonId, BookingApprovalRequest request) {
 
@@ -30,6 +34,19 @@ public class BookingApprovalService {
         BookingApproval saved = approvalRepository.save(approval);
         BookingApprovalResponse response =  buildResponse(saved);
 
+<<<<<<< HEAD
+=======
+        // Real-time dashboard update
+        partnerWebSocketService.notifyPartner(response);
+
+//        notificationService.sendToPartner(
+//                response.getCustomerId(),
+//                "Booking Approval Required",
+//                "A new booking request from customer #" + request.getCustomerId()
+//                        + " requires your approval."
+//        );
+
+>>>>>>> 345de0e (implimented scalable notification system)
         return response;
     }
 

@@ -50,6 +50,35 @@ public class BookingService {
     private int slotIntervalMinutes;
 
     /**
+     * Calculates the total duration in minutes for a list of service IDs.
+     * Handles both package and add-on services, accounting for duplicates in service selection.
+     *
+     * @param serviceIds list of service IDs selected by the customer
+     * @param services   list of SalonService entities corresponding to the service IDs
+     * @return total duration in minutes for the selected services
+     * @throws BadRequestException if the services list is empty or if there are invalid service IDs
+     */
+    private static int getTotalDuration(List<Long> serviceIds, List<SalonService> services) {
+        if (services.isEmpty()) {
+            throw new BadRequestException("Services not found");
+        }
+
+        // Calculate Total Duration (respect duplicates in serviceIds)
+        Map<Long, Integer> durationMap = new HashMap<>(services.size());
+        for (SalonService s : services) {
+            durationMap.put(s.getServiceId(), s.getDurationMinutes());
+        }
+        int totalDuration = 0;
+        for (Long id : serviceIds) {
+            Integer d = durationMap.get(id);
+            if (d != null) {
+                totalDuration += d; // add duration for each occurrence of serviceId
+            }
+        }
+        return totalDuration;
+    }
+
+    /**
      * CREATE BOOKING
      * paymentMode is no longer required here.
      * Booking is always created as PAYMENT_PENDING.
@@ -698,6 +727,13 @@ public class BookingService {
                 )
                 .count();
 
+<<<<<<< HEAD
+=======
+        //return !bookingRepo.existsOverlappingBooking(salonId, start, end, activeStatuses);
+        log.info("Resource Count: {}", resource.getResourceCount());
+        log.info("Overlapping Bookings: {}", overlappingBookings.size());
+        log.info("Occupied: {}", occupied);
+>>>>>>> 345de0e (implimented scalable notification system)
         return occupied < resource.getResourceCount();
     }
 
@@ -914,6 +950,7 @@ public class BookingService {
         return map;
     }
 
+<<<<<<< HEAD
     /**
      * Calculates the total duration in minutes for a list of service IDs.
      * Handles both package and add-on services, accounting for duplicates in service selection.
@@ -943,6 +980,8 @@ public class BookingService {
         return totalDuration;
     }
 
+=======
+>>>>>>> 345de0e (implimented scalable notification system)
     /**
      * Immutable pricing result for a booking.
      * Contains gross amount, platform fee, discount, final amount, and partner amount.

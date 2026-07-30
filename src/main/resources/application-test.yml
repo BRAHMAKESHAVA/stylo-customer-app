@@ -8,7 +8,8 @@ server:
 
 spring:
   #profiles:
-  #active: test
+  #  active: test
+
   datasource:
     #url: ${DB_URL:jdbc:postgresql://localhost:5432/my_database}
     url: ${DB_URL:jdbc:mysql://localhost:3306/my_database?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=Asia/Kolkata}
@@ -43,11 +44,31 @@ spring:
     resources:
       add-mappings: false
 
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:notification-group}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+
+      properties:
+        spring:
+          json:
+            trusted:
+              packages: "*"
+
 logging:
   level:
     root: INFO
     org.backend: DEBUG
     org.springframework.security: DEBUG
+
   pattern:
     console: "%green(%d{HH:mm:ss.SSS}) %highlight(%-5level) %cyan([%thread]) %magenta(%logger{15}) - %msg%n"
 
@@ -58,17 +79,25 @@ jwt:
 
 app:
   cors:
+<<<<<<< HEAD
     allowed-origins: http://localhost:5173,http://192.168.1.50:5173,http://192.168.1.50:5174, https://cavally-prebuccal-sherell.ngrok-free.dev
+=======
+    allowed-origins: http://localhost:5173,http://192.168.1.50:5173,http://192.168.1.50:5174,https://cavally-prebuccal-sherell.ngrok-free.dev
+
+>>>>>>> 345de0e (implimented scalable notification system)
   booking:
     payment-hold-minutes: 1
 
 twilio:
   account:
     sid: ${TWILIO_SID}
+
   auth:
     token: ${TWILIO_AUTH_TOKEN}
+
   sms:
     from: ${TWILIO_SMS_FROM}
+
   whatsapp:
     sandbox: ${TWILIO_WHATSAPP_SANDBOX}
 

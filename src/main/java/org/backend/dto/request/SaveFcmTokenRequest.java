@@ -8,4 +8,6 @@ public class SaveFcmTokenRequest {
     private String fcmToken;
 
     private String deviceType;
+
+    private String deviceId;
 }
